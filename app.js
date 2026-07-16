@@ -17,6 +17,8 @@ app.use(cookieParser())
 app.set('view engine','ejs')
 app.set('views',path.join(__dirname,'views'))
 
+app.use("/uploads",exp.static("uploads"));
+
 const authroutes = require('../Organ-Donation_Management_System/routes/authroutes')
 app.use('/',authroutes)
 
@@ -25,6 +27,13 @@ app.use('/',dashroutes)
 
 const profileroutes = require('../Organ-Donation_Management_System/routes/profileroutes')
 app.use('/',profileroutes)
+
+const medicalPortal = require('../Organ-Donation_Management_System/routes/medicalPortal')
+app.use('/',medicalPortal)
+
+const donorroutes = require('../Organ-Donation_Management_System/routes/donorroutes')
+app.use('/',donorroutes)
+
 // app.get('/',(req,res)=>{
 //     res.render('index')
-// })
+// })   

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Donor Dashboard</title>
+
+</head>
+
+<body>
+
+    <h1>Donor Dashboard</h1>
+
+    <hr>
+
+    <h2>Profile Information</h2>
+
+    <p><strong>Name :</strong> <%= user.name %></p>
+
+    <p><strong>Hospital :</strong> <%= hospital.hospital_name %></p>
+
+    <p><strong>Consent Status :</strong> <%= donor.consent_status %></p>
+
+    <p><strong>Verification Status :</strong> <%= donor.profile_status %></p>
+
+    <hr>
+
+    <h2>Donor Services</h2>
+
+    <ul>
+
+        <li>
+
+            <a href="/donor/organ">
+
+                Register New Organ
+
+            </a>
+
+        </li>
+
+        <li>
+
+            <a href="/donor/organs">
+
+                My Registered Organs
+
+            </a>
+
+        </li>
+
+        <li>
+
+            <a href="/notifications">
+
+                Notifications
+
+            </a>
+
+        </li>
+
+        <li>
+
+            <a href="/dashboard">
+
+                Back to Dashboard
+
+            </a>
+
+        </li>
+
+    </ul>
+
+</body>
+
+</html>

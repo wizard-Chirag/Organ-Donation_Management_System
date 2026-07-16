@@ -9,8 +9,7 @@ const hashPassword = (password)=>{
 
 const comparePassword = (currentPassword,hashedPassword) =>{
 
-    const isMatch = bcrypt.compare(currentPassword,hashedPassword)
-    return isMatch
+    return bcrypt.compare(currentPassword,hashedPassword)
 }
 
 module.exports={hashPassword,comparePassword}

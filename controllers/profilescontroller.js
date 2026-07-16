@@ -17,6 +17,7 @@ const showProfile = async (req,res)=>{
 
         let user = result1.rows[0]
 
+        console.log("User Profile Loaded")
         res.render('profiles',{user:user})
 
     } catch (err) {

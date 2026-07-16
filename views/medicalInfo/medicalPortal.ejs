@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Medical Profile</title>
+
+</head>
+
+<body>
+
+<h1>Medical Profile</h1>
+
+<hr>
+
+<h3>Personal Information</h3>
+
+<p>
+    <strong>Name:</strong>
+    <%= user.name %>
+</p>
+
+<p>
+    <strong>Email:</strong>
+    <%= user.email %>
+</p>
+
+<p>
+    <strong>Phone Number:</strong>
+    <%= user.phone_number %>
+</p>
+
+<p>
+    <strong>Blood Group:</strong>
+    <%= user.blood_group %>
+</p>
+
+<p>
+    <strong>Gender:</strong>
+    <%= user.gender %>
+</p>
+
+<p>
+    <strong>Date of Birth:</strong>
+    <%= user.dob %>
+</p>
+
+<hr>
+
+<form action="/medical" method="POST">
+
+    <label>Height (cm)</label><br>
+
+    <input
+        type="number"
+        name="height"
+        step="0.01"
+        min="50"
+        max="250"
+        value="<%= medical ? medical.height_cm : '' %>"
+        required
+    >
+
+    <br><br>
+
+    <label>Weight (kg)</label><br>
+
+    <input
+        type="number"
+        name="weight"
+        step="0.01"
+        min="10"
+        max="300"
+        value="<%= medical ? medical.weight_kg : '' %>"
+        required
+    >
+
+    <br><br>
+
+    <label>Smoker</label><br>
+
+    <select
+        name="smoker"
+        required
+    >
+
+        <option value="">Select</option>
+
+        <option
+            value="true"
+            <%= medical && medical.smoker ? "selected" : "" %>>
+            Yes
+        </option>
+
+        <option
+            value="false"
+            <%= medical && medical.smoker === false ? "selected" : "" %>>
+            No
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <label>Alcohol Consumer</label><br>
+
+    <select
+        name="alcoholic"
+        required
+    >
+
+        <option value="">Select</option>
+
+        <option
+            value="true"
+            <%= medical && medical.alcoholic ? "selected" : "" %>>
+            Yes
+        </option>
+
+        <option
+            value="false"
+            <%= medical && medical.alcoholic === false ? "selected" : "" %>>
+            No
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <label>Medical Summary</label><br>
+
+    <textarea
+        name="medical_summary"
+        rows="6"
+        cols="50"
+        maxlength="1000"
+    ><%= medical ? medical.medical_summary : '' %></textarea>
+
+    <br><br>
+
+    <h3>Emergency Contact</h3>
+
+    <label>Name</label><br>
+
+    <input
+        type="text"
+        name="emergency_contact_name"
+        value="<%= medical ? medical.emergency_contact_name : '' %>"
+        required
+    >
+
+    <br><br>
+
+    <label>Phone Number</label><br>
+
+    <input
+        type="text"
+        name="emergency_contact_number"
+        maxlength="15"
+        value="<%= medical ? medical.emergency_contact_phone : '' %>"
+        required
+    >
+
+    <br><br>
+
+    <label>Relationship</label><br>
+
+    <select
+        name="emergency_contact_relation"
+        required
+    >
+
+        <option value="">Select</option>
+
+        <option value="Father"
+        <%= medical && medical.emergency_relationship=="Father" ? "selected" : "" %>>
+        Father
+        </option>
+
+        <option value="Mother"
+        <%= medical && medical.emergency_relationship=="Mother" ? "selected" : "" %>>
+        Mother
+        </option>
+
+        <option value="Sibling"
+        <%= medical && medical.emergency_relationship=="Sibling" ? "selected" : "" %>>
+        Sibling
+        </option>
+
+        <option value="Spouse"
+        <%= medical && medical.emergency_relationship=="Spouse" ? "selected" : "" %>>
+        Spouse
+        </option>
+
+        <option value="Child"
+        <%= medical && medical.emergency_relationship=="Child" ? "selected" : "" %>>
+        Child
+        </option>
+
+        <option value="Other"
+        <%= medical && medical.emergency_relationship=="Other" ? "selected" : "" %>>
+        Other
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <% if(emergencyError){ %>
+
+        <p style="color:red">
+
+            <%= emergencyError %>
+
+        </p>
+
+    <% } %>
+
+    <hr>
+
+    <button type="submit">
+
+        <%= medical ? "Update Medical Profile" : "Create Medical Profile" %>
+
+    </button>
+
+</form>
+
+<br>
+
+<a href="/dashboard">
+
+    Back to Dashboard
+
+</a>
+
+</body>
+
+</html>

@@ -24,11 +24,10 @@ const verifyToken = (req, res, next) => {
         next();
 
     } catch (err) {
-
         // Invalid or expired token
-        // res.clearCookie("token");
+        res.clearCookie("token");
 
-        // return res.redirect("/");
+        return res.redirect("/");
         console.log(err)
 
     }

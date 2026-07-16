@@ -45,7 +45,8 @@ const db = require('../config/db')
 
 
 const showDash = (req, res) => {
-
+    
+    console.log("User Dashboard Loaded")
     res.render("dashboard");
 
 };
