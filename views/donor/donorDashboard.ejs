@@ -21,9 +21,9 @@
 
     <p><strong>Hospital :</strong> <%= hospital.hospital_name %></p>
 
-    <p><strong>Consent Status :</strong> <%= donor.consent_status %></p>
+    <p><strong>Donor Consent Status :</strong> <%= donor.donor_status %></p>
 
-    <p><strong>Verification Status :</strong> <%= donor.profile_status %></p>
+    <p><strong>Verification Status :</strong> <%= donor.verification_status %></p>
 
     <hr>
 
@@ -31,6 +31,15 @@
 
     <ul>
 
+        <li>
+
+            <a href="/donor/update">
+
+                Update Donor profile
+
+            </a>
+
+        </li>
         <li>
 
             <a href="/donor/organ">

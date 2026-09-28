@@ -5,8 +5,7 @@ const key = process.env.BHADRA
 const generateToken = (user)=>{
 
     let payload = {
-       user_id: user.user_id,
-       email : user.email
+       user_id: user.user_id
     }
     const token = jwt.sign(payload,key,{
         expiresIn:'1d'

@@ -14,10 +14,10 @@ const registerUser= async (req,res)=>{
     // res.send("User registration")
 
     try {
-        const {name,email,phone_number,password,address,city,gender,dob,blood_group} = req.body
+        const {name,email,phone_number,password,address,city,gender,dob} = req.body
 
         if(!name || !email || !phone_number 
-            || !password || !address || !city || !gender || !dob || !blood_group)
+            || !password || !address || !city || !gender || !dob)
             {
                 return res.send("All fields are mandatory")
             }
@@ -40,14 +40,14 @@ const registerUser= async (req,res)=>{
         const hashedPassword = await bcrypt.hashPassword(password)
 
         await db.query(
-            `insert into users(name,phone_number,password,email,gender,dob,blood_group,address,city)
-            values( $1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            `insert into users(name,phone_number,password,email,gender,dob,address,city)
+            values( $1,$2,$3,$4,$5,$6,$7,$8)`,
             [
-                name,phone_number,hashedPassword,email,gender,dob,blood_group,address,city
+                name,phone_number,hashedPassword,email,gender,dob,address,city
             ]
         )
 
-        // alert('User registered successfully')
+        console.log('User registered successfully')
         res.redirect('/')
 
     } catch (err) {
@@ -129,3 +129,5 @@ module.exports = {
     loginUser,
     logoutUser
 }
+
+// ALTER THE CONTENT TO BE DISPLAYED WHEN THE USER REGISTERS WITH EXISTING NUMBER AND EMAIL

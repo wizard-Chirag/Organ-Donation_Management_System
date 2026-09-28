@@ -25,7 +25,7 @@ const showDonorProfile = async (req,res)=>{
             const donorHospital = await db.query(
             `select hospital_name from hospital
              where hospital_id = $1`,
-             [donor.rows[0].registered_hospiatal_id]
+             [donor.rows[0].registered_hospital_id]
             )
             
 
@@ -55,7 +55,8 @@ const showDonorProfile = async (req,res)=>{
             console.log("Create Donor Page opened")
             return res.render('donor/createDonor',{
                 user:user.rows[0],
-                hospitals:hospitals.rows
+                hospitals:hospitals.rows,
+                donor:true
             })  
         }
 
@@ -118,9 +119,28 @@ const createDonorProfile = async (req,res)=>{
             return res.send("Incorrect hospital details")
         }
 
+        const donor = await db.query(
+            `select * from donor_profile
+            where user_id = $1`,
+            [user_id]
+        )
+
+        if(donor.rows.length>0 && donor.rows[0].verification_status != 'Approved'){
+            await db.query(
+                `update donor_profile set
+                hospital_name = $1,
+                
+                attested_document_path = $2
+                where user_id = $3`,
+                [hospital_id,legal_document.path,user_id]
+            )
+            console.log("Donor profile request updated")
+            return res.redirect('/dashboard')
+        }
+
         await db.query(
             `insert into donor_profile
-            (user_id,consent_status,registered_hospiatal_id,attestation_document_path,profile_status)
+            (user_id,donor_status,registered_hospital_id,attested_document_path,verification_status)
             values($1,$2,$3,$4,$5)`,
             [user_id,'Active',hospital_id,legal_document.path,'Pending']
         )

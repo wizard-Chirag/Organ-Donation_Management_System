@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Create Recipient Profile</title>
+</head>
+
+<body>
+
+    <h1>Create Recipient Profile</h1>
+
+    <hr>
+
+    <h3>User Information</h3>
+
+    <p><strong>Name :</strong> <%= user.name %></p>
+    <p><strong>Email :</strong> <%= user.email %></p>
+    <p><strong>Phone :</strong> <%= user.phone_number %></p>
+    <p><strong>Blood Group :</strong> <%= user.blood_group %></p>
+
+    <hr>
+
+    <form action="/recipient" method="POST" enctype="multipart/form-data">
+
+        <label>Registered Hospital</label>
+
+        <br><br>
+
+        <!-- Later this will be dynamically loaded from hospital table -->
+
+        <select name="hospital_id" required>
+
+            <option value="">Select Hospital</option>
+
+            <% hospitals.forEach(hospital => { %>
+
+                <option value="<%= hospital.hospital_id %>">
+
+                    <%= hospital.hospital_name %>
+
+                </option>
+
+            <% }) %>
+
+        </select>
+
+        <br><br>
+
+        <label>Medical Report</label>
+
+        <br><br>
+
+        <input
+        type="file"
+        name="medical_report"
+        accept=".pdf,.jpg,.png"
+        required
+    >
+
+        <br><br>
+
+        <label>Confirm Password</label>
+
+        <br><br>
+
+        <input
+            type="password"
+            name="password"
+            required
+        >
+
+        <br><br>
+
+        <button type="submit" onclick="submiter()">
+
+            Create Recipient Profile
+
+        </button>
+
+    </form>
+
+    <br>
+
+    <a href="/dashboard">
+
+        Back to Dashboard
+
+    </a>
+
+</body>
+
+</html>
+
+<script>
+    function submiter() {
+        let consent = confirm("I agree that the given details by me for Recipient registration are valid")
+        
+    }
+</script>

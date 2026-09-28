@@ -16,7 +16,9 @@ const {
 } = require('../controllers/donorController')
 
 router.get('/donor',verifyToken,showDonorProfile)
+// router.get('/donor/update',verifyToken,showDonorProfile)
 
 router.post("/donor", verifyToken, donoFolder.single("medical_report"), createDonorProfile );
+// router.post("/donor/update", verifyToken, donoFolder.single("medical_report"), createDonorProfile );
 
 module.exports = router

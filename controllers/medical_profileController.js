@@ -48,6 +48,7 @@ const createMedicalProfile = async (req,res)=>{
             height,
             weight,
             smoker,
+            bloodgroup,
             alcoholic,
             medical_summary,
             emergency_contact_name,
@@ -59,6 +60,7 @@ const createMedicalProfile = async (req,res)=>{
         // ALL FIELDS ENTRY IS MANDATORY
         if( !height ||
             !weight ||
+            !bloodgroup ||
             smoker === undefined ||
             alcoholic === undefined ||
             !medical_summary ||
@@ -105,6 +107,7 @@ const createMedicalProfile = async (req,res)=>{
             user_id,    
             height_cm,
             weight_kg,
+            bloodgroup,
             smoker,
             alcoholic,
             medical_summary,
@@ -112,10 +115,11 @@ const createMedicalProfile = async (req,res)=>{
             emergency_contact_number,
             emergency_contact_relation) 
             values(
-            $1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
             [user_id,
             height,
             weight,
+            bloodgroup,
             smoker,
             alcoholic,
             medical_summary,
@@ -136,6 +140,8 @@ const createMedicalProfile = async (req,res)=>{
 
                     weight_kg = $2,
 
+                    bloodgroup = $9
+
                     smoker = $3,
 
                     alcoholic = $4,
@@ -149,7 +155,7 @@ const createMedicalProfile = async (req,res)=>{
                     emergency_contact_relation = $8,
 
                     updated_at = CURRENT_TIMESTAMP 
-                    where user_id = $9`,
+                    where user_id = $10`,
                     [height,
 
                     weight,
@@ -165,6 +171,8 @@ const createMedicalProfile = async (req,res)=>{
                     emergency_contact_number,
 
                     emergency_contact_relation,
+
+                    bloodgroup,
 
                     user_id]
         )

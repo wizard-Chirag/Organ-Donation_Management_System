@@ -34,6 +34,9 @@ app.use('/',medicalPortal)
 const donorroutes = require('../Organ-Donation_Management_System/routes/donorroutes')
 app.use('/',donorroutes)
 
+const recipientroutes = require('../Organ-Donation_Management_System/routes/recipientRoutes')
+app.use('/',recipientroutes)
+
 // app.get('/',(req,res)=>{
 //     res.render('index')
 // })   
