@@ -19,6 +19,9 @@ app.set('views',path.join(__dirname,'views'))
 
 app.use("/uploads",exp.static("uploads"));
 
+const adminroutes = require('../Organ-Donation_Management_System/routes/adminroutes')
+app.use('/',adminroutes)
+
 const authroutes = require('../Organ-Donation_Management_System/routes/authroutes')
 app.use('/',authroutes)
 
@@ -37,6 +40,8 @@ app.use('/',donorroutes)
 const recipientroutes = require('../Organ-Donation_Management_System/routes/recipientRoutes')
 app.use('/',recipientroutes)
 
+const hospitaltauthroute = require('./routes/hospital/authdashboard')
+app.use('/',hospitaltauthroute)
 // app.get('/',(req,res)=>{
 //     res.render('index')
 // })   

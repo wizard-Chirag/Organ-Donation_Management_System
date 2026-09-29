@@ -3,7 +3,7 @@ const salt_rounds = 10
 
 const hashPassword = (password)=>{
 
-    const hashed = bcrypt.hash(password,10)
+    const hashed = bcrypt.hash(password,salt_rounds)
     return hashed
 }
 

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hospital Dashboard</title>
+</head>
+
+<body>
+
+```
+<h1>Hospital Dashboard</h1>
+
+<hr>
+
+<h2>Hospital Information</h2>
+
+<p>
+    <strong>Hospital ID:</strong>
+    <%= hospital.hospital_id %>
+</p>
+
+<p>
+    <strong>Hospital Name:</strong>
+    <%= hospital.hospital_name %>
+</p>
+
+<p>
+    <strong>License Number:</strong>
+    <%= hospital.license_no %>
+</p>
+
+<p>
+    <strong>City:</strong>
+    <%= hospital.city %>
+</p>
+
+<hr>
+
+<h2>Hospital Services</h2>
+
+<ul>
+
+    <li>
+        <a href="/hospital/staff">
+            View / Edit Staff
+        </a>
+    </li>
+
+    <li>
+        <a href="/hospital/profile-requests">
+            View / Approve Profile Requests
+        </a>
+    </li>
+
+    <li>
+        <a href="/hospital/organ-requests">
+            View Organ Requests
+        </a>
+    </li>
+
+    <li>
+        <a href="/hospital/medical-tests">
+            View / Monitor Medical Tests
+        </a>
+    </li>
+
+    <li>
+        <a href="/hospital/transplants">
+            Transplant Services
+        </a>
+    </li>
+
+</ul>
+
+<hr>
+
+<form action="/hospital/logout" method="POST">
+
+    <button type="submit">
+        Logout
+    </button>
+
+</form>
+```
+
+</body>
+
+</html>

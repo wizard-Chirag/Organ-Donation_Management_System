@@ -1,7 +1,7 @@
 const db = require("../config/db");
 // const bcrypt = require("bcrypt");
 const bcrypt = require('../utils/passwords')
-const tokener = require('../utils/generateToken')
+const {GenerateToken} = require('../utils/generateToken')
 
 const showHome = (req,res)=>{
     res.render('index',{loginError: null,
@@ -89,7 +89,7 @@ try {
                 return res.send("Incorrect Password");
             }
     
-            let token = tokener.generateToken(user)
+            let token = GenerateToken(user)
             res.cookie("token",token,
                 {
     

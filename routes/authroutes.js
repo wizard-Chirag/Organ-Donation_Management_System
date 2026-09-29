@@ -3,7 +3,7 @@ const experss = require('express')
 const router =experss.Router()
 
 const authfunctions = require('../controllers/authcontroller')
-const verifyToken = require("../middleware/verifytoken");
+// const {verifyUserToken} = require("../middleware/verifytoken");
 
 router.get('/',authfunctions.showHome)
 router.post('/login',authfunctions.loginUser)

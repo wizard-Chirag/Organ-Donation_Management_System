@@ -1,1 +1,1 @@
-SELECT * FROM user_medical_info
+SELECT * FROM hospital

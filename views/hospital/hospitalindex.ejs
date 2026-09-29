@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hospital Login</title>
+</head>
+
+<body>
+
+```
+<h1>Hospital Login</h1>
+
+<p>Login using your registered hospital credentials.</p>
+
+<% if (error) { %>
+    <p><%= error %></p>
+<% } %>
+
+<form action="/hospital/login" method="POST">
+
+    <label for="hospital_id">
+        Hospital ID:
+    </label>
+
+    <br>
+
+    <input
+        type="text"
+        id="hospital_id"
+        name="hospital_id"
+        required
+    >
+
+    <br><br>
+
+    <label for="password">
+        Password:
+    </label>
+
+    <br>
+
+    <input
+        type="password"
+        id="password"
+        name="password"
+        required
+    >
+
+    <br><br>
+
+    <button type="submit">
+        Login
+    </button>
+
+</form>
+
+<br>
+
+<a href="/">
+    Back to User Login
+</a>
+```
+
+</body>
+
+</html>

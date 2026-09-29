@@ -2,10 +2,10 @@ const exp = require('express')
 
 const router = exp.Router()
 
-const verifyToken = require('../middleware/verifytoken')
+const {verifyUserToken} = require('../middleware/verifytoken')
 
 const {showDash} = require('../controllers/dashboardcontroller')
 
-router.get('/dashboard',verifyToken,showDash)
+router.get('/dashboard',verifyUserToken,showDash)
 
 module.exports = router
