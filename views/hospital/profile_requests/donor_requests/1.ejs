@@ -94,6 +94,38 @@
 
                 </select>
 
+                <select name="status">
+
+                    <option value="">
+                        Select Status
+                    </option>
+
+
+                    <option
+                        value="Approved"
+                        <%= status === 'Approved' ? 'selected' : '' %>
+                    >
+                        Approved
+                    </option>
+
+
+                    <option
+                        value="Rejected"
+                        <%= status === 'Rejected' ? 'selected' : '' %>
+                    >
+                       Rejected
+                    </option>
+
+                    <option
+                        value="Pending"
+                        <%= status === 'Pending' ? 'selected' : '' %>
+                    >
+                        Pending
+                    </option>
+
+
+                </select>
+
 
                 <button
                     type="submit"
@@ -216,7 +248,7 @@
                         </td>
 
                         <td>
-                            <%= request.hospital_name %>
+                            <%= hospitals.hospital_name %>
                         </td>
 
                         <td>
@@ -379,6 +411,8 @@
 
 </div>
 
+<a href="/hospitalDashboard">Back to Dashboard</a>
+
 
 
 <script>
@@ -534,7 +568,7 @@
 
             const response =
                 await fetch(
-                    "/hospital/profile-requests/action",
+                    "/hospital/profile-requests/donor/action",
                     {
 
                         method: "POST",

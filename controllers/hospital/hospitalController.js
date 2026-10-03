@@ -3,17 +3,18 @@ const {comparePassword} = require('../../utils/passwords')
 
 const showProfileReqestDash = (req,res)=>{
 
-
     console.log('Profile request index page loaded')
     res.render('profile_requests/ProfileModuleIndex')
 }
 
 const manageRequests = async (req, res) => {
 
+    const hospital_id = req.hospital.hospital_id
     try {
 
         const search = req.query.search || "";
         const gender = req.query.gender || "";
+        const status = req.query.status || "";
 
         let query = `
             SELECT
@@ -73,11 +74,24 @@ const manageRequests = async (req, res) => {
 
         }
 
+        /*FILTER BY VERIFICATION STATUS*/
+
+        if (status !== "") {
+
+            values.push(status);
+
+            query += `
+                AND d.verification_status = $${values.length}
+            `;
+
+        }
+
         /*ORDER*/
 
-        query += `
-            AND d.verification_status = 'Pending'
-            ORDER BY d.registered_at DESC
+        values.push(hospital_id)
+        query += ` 
+         AND d.registered_hospital_id = $${values.length}
+             ORDER BY d.registered_at DESC
         `;
 
 
@@ -94,7 +108,10 @@ const manageRequests = async (req, res) => {
 
                 gender: gender,
 
-                hospitals: req.hospital.hospital_name
+                status:status,
+
+                hospitals : req.hospital
+ 
             }
         );
 
@@ -108,7 +125,7 @@ const manageRequests = async (req, res) => {
 
 
         res.status(500).send(
-            "Unable to load donor requests."
+            "Internal server error loading donor requests."
         );
 
     }
@@ -163,7 +180,7 @@ const requestAction = async (req,res) => {
         if(request.rows.length==0){
             return res.json({
                 success:false,
-                message:'Request doesnot exist'
+                message:'Donor Request doesnot exist'
             })
         }
 
@@ -213,42 +230,195 @@ const requestAction = async (req,res) => {
 const manageRecipientRequests = async (req,res) => {
 
     try {
-        
-        const hospital = req.hospital.hospital_id
+
+        const hospital_id = req.hospital.hospital_id
 
         const search = req.query.search || ""
         const gender = req.query.gender || ""
+        const status = req.query.status || ""
 
-        const qurry =
+        let qurry =
         `select 
-        r.recipient_id,
+        r.recipent_id,
         u.user_id,
-        u.uname,
+        u.name,
         u.gender,
         u.dob,
         m.bloodgroup,
-        r.registered_hospital,
         r.registered_at,
         r.attested_document_path
         
         from recipient_profile r
-        JOIN user u 
+        JOIN users u 
         ON r.user_id = u.user_id
-        JOIN user_medical_profile m
+        JOIN user_medical_info m
         ON m.user_id = r.user_id
         
-        where 1=1`;
+        where 1=1 `;
 
         const values =[]
 
         if(search != "")
         {
-            values=
+            values.push(`%${search}%`)
+
+            qurry+=
+            `AND 
+            (
+             u.name ILIKE $${values.length}
+             OR
+             CAST(u.user_id as TEXT) ILIKE $${values.length} 
+             )`
         }
+
+        if(gender != "")
+        {
+            values.push(gender)
+
+            qurry+=
+            ` AND u.gender = $${values.length} 
+             `
+        }
+
+        /*FILTER BY VERIFICATION STATUS*/
+
+        if (status !== "") {
+
+            values.push(status);
+
+            qurry += `
+                 AND r.verification_status = $${values.length}
+            `;
+
+        }
+        values.push(hospital_id)
+
+        qurry+= 
+        ` AND r.registered_hospital_id = $${values.length}
+        ORDER BY r.registered_at DESC`
+
+        console.log(qurry);
+        console.log(values);
+        const results = await db.query(qurry,values)
+
+        res.render('profile_requests/recipient_requests/recipientRequests',{
+            requests : results.rows,
+            hospital: req.hospital,
+             search: search,
+             gender: gender,
+             status:status
+        })
     } catch (error) {
+
+        console.log(error)
+        res.send('Internal server error in loading requests')
         
     }
     
 }
 
-module.exports = {showProfileReqestDash,manageRequests,requestAction}
+const RecipientRequestAction = async (req,res) => {
+    
+    try {
+        
+        const hospital_id = req.hospital.hospital_id
+
+        const {
+            request_id,
+            action,
+            password
+        } = req.body
+
+        if(!request_id || !action || !password){
+            console.table(request_id,action,password)
+            return res.json(
+                {
+                    success:false,
+                    message:"Request ID, action and password are required"
+                }
+            )
+        }
+
+        const request = await db.query(
+            `select * from recipient_profile
+            where recipent_id = $1`,
+            [request_id]
+        )
+        if(request.rows.length==0){
+           return res.json(
+                {
+                    success:false,
+                    message:"Recipient request Does not exist"
+                }
+            )
+        }
+
+        const hospital = await db.query(
+            `select * from hospital
+            where hospital_id = $1`,
+            [hospital_id]
+        )
+        const hospital_password = hospital.rows[0].hospital_password
+
+        const compare = await comparePassword(password,hospital_password)
+
+        console.log(compare)
+        if(!compare){
+            return res.status(401).json(
+                {
+                    success:false,
+                    message:'Incorrect Password'
+                }
+            )
+        }
+
+        console.log(password)
+            console.log(hospital_password)
+
+
+        if(request.rows[0].verification_status!='Pending'){
+            console.log(request.rows[0].verification_status)
+            return res.json(
+                {
+                    success:false,
+                    message:"Request already processed"
+                }
+            )
+        }
+
+        let newAction
+        if(action=='approve'){ newAction='Approved'}
+        else{ newAction = 'Rejected'}
+
+        await db.query(
+            `update recipient_profile set
+            verification_status = $1`,
+            [newAction]
+        )
+        
+        return res.json(
+                {
+                    success:true,
+                    message:action === "approve"
+                    ? "Recipient request approved successfully."
+                    : "Recipient request rejected successfully."
+                }
+            )
+
+    } catch (error) {
+        
+        console.log(error)
+        return res.status(500).json({
+            success: false,
+            message: "Unable to process request."
+        });
+    }
+
+}
+
+module.exports = {
+    showProfileReqestDash,
+    manageRequests,
+    requestAction,
+manageRecipientRequests,
+RecipientRequestAction}

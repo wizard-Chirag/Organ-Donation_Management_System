@@ -17,4 +17,5 @@
 --             ON u.user_id = m.user_id
 --             where d.verification_status = 'Pending';
 
-select hospital_name, hospital_id from hospital
+-- SELECT  d.*, r.* from donor_profile d JOIN recipient_profile r on r.user_id = d.user_id/
+SELECT d.donor_id, r.recipent_id from donor_profile FULL JOIN 

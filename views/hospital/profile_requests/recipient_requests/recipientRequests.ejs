@@ -12,10 +12,10 @@
 
     <title>Recipient Profile Requests</title>
 
-    <link
+    <!-- <link
         rel="stylesheet"
         href="/css/hospitalRequests.css"
-    >
+    > -->
 
 </head>
 
@@ -30,9 +30,6 @@
          SIDEBAR
     ========================== -->
 
-    <%- include('../partials/hospitalSidebar') %>
-
-
     <div class="main">
 
 
@@ -40,7 +37,6 @@
              NAVBAR
         ========================== -->
 
-        <%- include('../partials/hospitalNavbar') %>
 
 
         <div class="table-container">
@@ -81,7 +77,7 @@
 
 
                     <option
-                        value="Male"
+                        value="male"
                         <%= gender === 'Male' ? 'selected' : '' %>
                     >
                         Male
@@ -89,18 +85,10 @@
 
 
                     <option
-                        value="Female"
+                        value="female"
                         <%= gender === 'Female' ? 'selected' : '' %>
                     >
                         Female
-                    </option>
-
-
-                    <option
-                        value="Other"
-                        <%= gender === 'Other' ? 'selected' : '' %>
-                    >
-                        Other
                     </option>
 
                 </select>
@@ -193,7 +181,7 @@
                     <tr
                         class="request-row"
 
-                        data-request-id="<%= request.request_id %>"
+                        data-request-id="<%= request.recipent_id %>"
 
                         data-user-id="<%= request.user_id %>"
 
@@ -201,15 +189,15 @@
 
                         data-gender="<%= request.gender %>"
 
-                        data-dob="<%= request.date_of_birth %>"
+                        data-dob="<%= request.dob %>"
 
-                        data-blood-group="<%= request.blood_group %>"
+                        data-blood-group="<%= request.bloodgroup %>"
 
-                        data-hospital="<%= request.hospital_name %>"
+                        data-hospital="<%= hospital.hospital_name %>"
 
-                        data-document="<%= request.document_path %>"
+                        data-document="<%= request.attested_document_path %>"
 
-                        data-requested-at="<%= request.requested_at %>"
+                        data-requested-at="<%= request.registered_at %>"
 
                         onclick="openRequest(this)"
                     >
@@ -217,7 +205,7 @@
 
                         <td>
 
-                            <%= request.request_id %>
+                            <%= request.recipent_id %>
 
                         </td>
 
@@ -245,21 +233,21 @@
 
                         <td>
 
-                            <%= request.blood_group %>
+                            <%= request.bloodgroup %>
 
                         </td>
 
 
                         <td>
 
-                            <%= request.hospital_name %>
+                            <%= hospital.hospital_name %>
 
                         </td>
 
 
                         <td>
 
-                            <%= request.requested_at %>
+                            <%= request.registered_at %>
 
                         </td>
 
@@ -638,7 +626,7 @@
 
             const response =
                 await fetch(
-                    "/hospital/profile-requests/action",
+                    "/hospital/profile-requests/recipient/action",
                     {
 
                         method: "POST",
@@ -685,10 +673,9 @@
             }
             else
             {
-
                 alert(
                     result.message ||
-                    "Incorrect password."
+                    "Unexpected error"
                 );
 
             }

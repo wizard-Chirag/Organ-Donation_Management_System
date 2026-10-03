@@ -4,7 +4,7 @@ const {hospitalGenToken} = require('../../utils/generateToken')
 
 
 const showLogin = (req,res)=>{
-    // console.log("")
+
     res.render('hospital/hospitalindex',{
         error:null,
     })
@@ -60,7 +60,7 @@ const logout = (req,res)=>{
 
     res.clearCookie('token')
     console.log("Hospital logged out")
-    return res.redirect('/hospiatl')
+    return res.redirect('/hospital')
 }
 
 const showDash = async (req,res)=>{
