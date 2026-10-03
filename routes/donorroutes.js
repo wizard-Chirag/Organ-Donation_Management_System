@@ -12,13 +12,16 @@ const donoFolder = uploadFolder('DonorDocs')
 
 const {
     showDonorProfile,
-    createDonorProfile
+    createDonorProfile,
+    updateDonorProfile,
+    showDonorUpdateProfile
 } = require('../controllers/donorController')
 
 router.get('/donor',verifyUserToken,showDonorProfile)
 // router.get('/donor/update',verifyToken,showDonorProfile)
 
 router.post("/donor", verifyUserToken, donoFolder.single("medical_report"), createDonorProfile );
-// router.post("/donor/update", verifyToken, donoFolder.single("medical_report"), createDonorProfile );
+router.get("/donor/update", verifyUserToken, donoFolder.single("medical_report"), showDonorUpdateProfile );
+router.post("/donor/update", verifyUserToken, donoFolder.single("medical_report"), updateDonorProfile );
 
 module.exports = router

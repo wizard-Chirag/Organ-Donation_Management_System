@@ -76,8 +76,8 @@ const createDonorProfile = async (req,res)=>{
     // return res.send("Donor Creation Module in progress")
     const user_id = req.user.user_id
     try {
-        
-        const {
+
+            const {
             // legal_document,
             hospital_id,
             password
@@ -92,12 +92,6 @@ const createDonorProfile = async (req,res)=>{
         ){
             return res.send("All fields are mandatory")
         }
-
-        const user = await db.query(
-            `select * from users
-            where user_id = $1`,
-            [user_id]
-        )
 
         const hospitalName = await db.query(
             `select hospital_name from hospital
@@ -125,17 +119,20 @@ const createDonorProfile = async (req,res)=>{
             [user_id]
         )
 
-        if(donor.rows.length>0 && donor.rows[0].verification_status != 'Approved'){
-            await db.query(
-                `update donor_profile set
-                hospital_name = $1,
-                
-                attested_document_path = $2
-                where user_id = $3`,
-                [hospital_id,legal_document.path,user_id]
-            )
-            console.log("Donor profile request updated")
-            return res.redirect('/dashboard')
+        // CHECK IF DONOR PROFILE EXISTS IF YES THEN UPDATE
+        if (donor.rows.length>0 && donor.rows[0].verification_status!='Approved') {
+
+             await db.query(
+                    `update donor_profile set
+                    hospital_name = $1,
+                    
+                    attested_document_path = $2
+                    where user_id = $3`,
+                    [hospital_id,legal_document.path,user_id]
+                )
+                console.log("Donor profile request updated")
+                return res.redirect('/dashboard')
+            
         }
 
         await db.query(
@@ -147,13 +144,110 @@ const createDonorProfile = async (req,res)=>{
         console.log("Donor profile request created")
 
         return res.redirect('/dashboard')
+
+        
     } catch (err) {
         console.log(err)
         res.status(500).send("Internal Server Error");
     }
 }
 
+const showDonorUpdateProfile = async (req,res) => {
+    
+    try {
+        const user_id = req.user.user_id
+
+        const user = await db.query(
+            `select * from users
+             where user_id = $1`,
+             [user_id]
+        ) 
+
+        const donor = await db.query(
+            `select * from donor_profile
+            where user_id = $1`,
+            [user_id]
+        )
+
+        if(donor.rows.length>0 && donor.rows[0].verification_status!='Approved'){
+             const hospitals = await db.query(
+            `select hospital_id, hospital_name from hospital
+            order by hospital_name ASC`
+            )
+            return res.render('donor/updateDonor',{
+                user:user.rows[0],
+                hospitals:hospitals.rows
+            })
+        }
+        res.send('donor profile already approved, cannot be updated')
+       
+    } catch (error) {
+        console.log(error)
+        return res.send('internal server error')
+    }
+}
+
+const updateDonorProfile = async (req,res) => {
+    
+    try {
+        
+        const user_id = req.user.user_id
+
+         const {
+            // legal_document,
+            hospital_id,
+            password
+        } = req.body
+
+        const legal_document = req.file;
+
+        if(
+            !legal_document ||
+            !hospital_id ||
+            !password
+        ){
+            return res.send("All fields are mandatory")
+        }
+
+        const hospitalName = await db.query(
+            `select hospital_name from hospital
+            where hospital_id = $1`,
+            [hospital_id]
+        )
+
+        const hashedpassword = user.rows[0].password
+
+        const compare = await comparePassword(password,hashedpassword) 
+
+        if(!compare){
+            console.log("Invalid password for donor_profile creation")
+            return res.send("Incorrect Password")
+        }
+
+        if(hospitalName.rows[0]===0){
+             console.log("Invalid hospital")
+            return res.send("Incorrect hospital details")
+        }
+
+         await db.query(
+                    `update donor_profile set
+                    hospital_name = $1,
+                    
+                    attested_document_path = $2
+                    where user_id = $3`,
+                    [hospital_id,legal_document.path,user_id]
+                )
+                console.log("Donor profile request updated")
+                return res.redirect('/dashboard')
+
+    } catch (error) {
+        
+    }
+}
+
 module.exports = {
     createDonorProfile,
-    showDonorProfile
+    showDonorProfile,
+    showDonorUpdateProfile,
+    updateDonorProfile
 }

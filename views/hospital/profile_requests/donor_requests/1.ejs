@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Donor Profile Requests</title>
+
+    <!-- <link
+        rel="stylesheet"
+        href="/css/dashboard.css"
+    > -->
+
+    <link
+        rel="stylesheet"
+        href="/css/hospitalRequests.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<div class="dashboard">
+
+
+    <!-- SIDEBAR -->
+
+
+
+    <div class="main">
+
+
+        <!-- NAVBAR -->
+
+
+
+        <div class="table-container">
+
+
+            <h2>
+                Donor Profile Requests
+            </h2>
+
+
+            <br>
+
+
+            <!-- SEARCH -->
+
+            <form
+                class="search-form"
+                method="GET"
+                action="/hospital/profile-requests/donor"
+            >
+
+                <input
+                    type="text"
+                    name="search"
+                    placeholder="Search donor name or User ID"
+                    value="<%= search || '' %>"
+                >
+
+
+                <select name="gender">
+
+                    <option value="">
+                        All Gender
+                    </option>
+
+
+                    <option
+                        value="male"
+                        <%= gender === 'male' ? 'selected' : '' %>
+                    >
+                        Male
+                    </option>
+
+
+                    <option
+                        value="female"
+                        <%= gender === 'female' ? 'selected' : '' %>
+                    >
+                        Female
+                    </option>
+
+
+                </select>
+
+
+                <button
+                    type="submit"
+                    class="theme-btn"
+                >
+                    Search
+                </button>
+
+            </form>
+
+
+            <br>
+
+
+            <!-- REQUEST TABLE -->
+
+            <table id="donorRequestTable">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Request ID
+                        </th>
+
+                        <th>
+                            User ID
+                        </th>
+
+                        <th>
+                            Donor Name
+                        </th>
+
+                        <th>
+                            Gender
+                        </th>
+
+                        <th>
+                            Blood Group
+                        </th>
+
+                        <th>
+                            Hospital
+                        </th>
+
+                        <th>
+                            Requested At
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                <% if (request.length === 0) { %>
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="no-data"
+                        >
+                            No donor profile requests found.
+                        </td>
+
+                    </tr>
+
+                <% } %>
+
+
+                <% request.forEach(request => { %>
+
+
+                    <tr
+                        class="request-row"
+
+                        data-request-id="<%= request.donor_id %>"
+
+                        data-user-id="<%= request.user_id %>"
+
+                        data-name="<%= request.name %>"
+
+                        data-gender="<%= request.gender %>"
+
+                        data-dob="<%= request.dob %>"
+
+                        data-blood-group="<%= request.bloodgroup %>"
+
+                        data-hospital="<%= hospitals.hospital_name %>"
+
+                        data-document="<%= request.attested_document_path %>"
+
+                        data-requested-at="<%= request.registered_at %>"
+
+                        onclick="openRequest(this)"
+                    >
+
+                        <td>
+                            <%= request.donor_id %>
+                        </td>
+
+                        <td>
+                            <%= request.user_id %>
+                        </td>
+
+                        <td>
+                            <%= request.name %>
+                        </td>
+
+                        <td>
+                            <%= request.gender %>
+                        </td>
+
+                        <td>
+                            <%= request.bloodgroup %>
+                        </td>
+
+                        <td>
+                            <%= request.hospital_name %>
+                        </td>
+
+                        <td>
+                            <%= request.registered_at %>
+                        </td>
+
+                    </tr>
+
+                <% }) %>
+
+
+                </tbody>
+
+            </table>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =================================================
+     DONOR REQUEST MODAL
+================================================= -->
+
+<div
+    id="requestModal"
+    class="modal-overlay"
+>
+
+    <div
+        id="requestModalContent"
+        class="glass-modal"
+    >
+
+
+        <button
+            type="button"
+            class="modal-close"
+            onclick="closeModal()"
+        >
+            &times;
+        </button>
+
+
+        <h2>
+            Donor Profile Request
+        </h2>
+
+
+        <div class="modal-details">
+
+
+            <p>
+                <strong>Request ID:</strong>
+
+                <span id="modalRequestId"></span>
+            </p>
+
+
+            <p>
+                <strong>User ID:</strong>
+
+                <span id="modalUserId"></span>
+            </p>
+
+
+            <p>
+                <strong>Name:</strong>
+
+                <span id="modalName"></span>
+            </p>
+
+
+            <p>
+                <strong>Gender:</strong>
+
+                <span id="modalGender"></span>
+            </p>
+
+
+            <p>
+                <strong>Date of Birth:</strong>
+
+                <span id="modalDob"></span>
+            </p>
+
+
+            <p>
+                <strong>Blood Group:</strong>
+
+                <span id="modalBloodGroup"></span>
+            </p>
+
+
+            <p>
+                <strong>Hospital:</strong>
+
+                <span id="modalHospital"></span>
+            </p>
+
+
+            <p>
+                <strong>Requested At:</strong>
+
+                <span id="modalRequestedAt"></span>
+            </p>
+
+
+            <p>
+                <strong>Document:</strong>
+
+                <span id="modalDocument"></span>
+            </p>
+
+
+            <div class="document-section">
+
+                <a
+                    id="documentLink"
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    View Donor Document
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- ACTION BUTTONS -->
+
+        <div class="modal-actions">
+
+            <button
+                type="button"
+                class="approve-btn"
+                onclick="takeAction('approve')"
+            >
+                Approve
+            </button>
+
+
+            <button
+                type="button"
+                class="reject-btn"
+                onclick="takeAction('reject')"
+            >
+                Reject
+            </button>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+
+<script>
+
+    let selectedRequestId = null;
+
+
+    /*
+    ================================================
+    OPEN MODAL
+    ================================================
+    */
+
+    function openRequest(row)
+    {
+
+        selectedRequestId =
+            row.dataset.requestId;
+
+
+        document.getElementById(
+            "modalRequestId"
+        ).textContent =
+            row.dataset.requestId;
+
+
+        document.getElementById(
+            "modalUserId"
+        ).textContent =
+            row.dataset.userId;
+
+
+        document.getElementById(
+            "modalName"
+        ).textContent =
+            row.dataset.name;
+
+
+        document.getElementById(
+            "modalGender"
+        ).textContent =
+            row.dataset.gender;
+
+
+        document.getElementById(
+            "modalDob"
+        ).textContent =
+            row.dataset.dob;
+
+
+        document.getElementById(
+            "modalBloodGroup"
+        ).textContent =
+            row.dataset.bloodGroup;
+
+
+        document.getElementById(
+            "modalHospital"
+        ).textContent =
+            row.dataset.hospital;
+
+
+        document.getElementById(
+            "modalRequestedAt"
+        ).textContent =
+            row.dataset.requestedAt;
+
+
+        document.getElementById(
+            "modalDocument"
+        ).textContent =
+            row.dataset.document;
+
+
+        document.getElementById(
+            "documentLink"
+        ).href =
+            "/" + row.dataset.document;
+
+
+        document.getElementById(
+            "requestModal"
+        ).classList.add("active");
+
+    }
+
+
+
+    /*
+    ================================================
+    CLOSE MODAL
+    ================================================
+    */
+
+    function closeModal()
+    {
+
+        document.getElementById(
+            "requestModal"
+        ).classList.remove("active");
+
+
+        selectedRequestId = null;
+
+    }
+
+
+    /*APPROVE / REJECT*/
+
+    async function takeAction(action)
+    {
+
+        if (!selectedRequestId)
+        {
+
+            alert(
+                "No request selected."
+            );
+
+            return;
+
+        }
+
+
+        /*Browser password popup\*/
+
+        const password =
+            prompt(
+                "Enter hospital password to continue:"
+            );
+
+
+        if (password === null)
+        {
+            return;
+        }
+
+
+        if (password.trim() === "")
+        {
+
+            alert(
+                "Password cannot be empty."
+            );
+
+            return;
+
+        }
+
+
+        try
+        {
+
+            const response =
+                await fetch(
+                    "/hospital/profile-requests/action",
+                    {
+
+                        method: "POST",
+
+                        headers:
+                        {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify(
+                            {
+                                request_id:
+                                    selectedRequestId,
+
+                                action:
+                                    action,
+
+                                password:
+                                    password
+                            })
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (result.success)
+            {
+
+                alert(
+                    action === "approve"
+                        ? "Donor profile approved successfully."
+                        : "Donor profile rejected successfully."
+                );
+
+
+                window.location.reload();
+
+            }
+            else
+            {
+
+                alert(
+                    result.message ||
+                    "Incorrect password."
+                );
+
+            }
+
+        }
+        catch(error)
+        {
+
+            console.log(error);
+            console.log("anthamma");
+
+            alert(
+                "Something went wrong. Please try again."
+            );
+
+        }
+
+    }
+
+
+
+    /*
+    ================================================
+    CLOSE WHEN CLICKING OUTSIDE MODAL
+    ================================================
+    */
+
+    document.getElementById(
+        "requestModal"
+    ).addEventListener(
+        "click",
+        function(event)
+        {
+
+            if (event.target === this)
+            {
+
+                closeModal();
+
+            }
+
+        }
+    );
+
+</script>
+
+
+</body>
+
+</html>

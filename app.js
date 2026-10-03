@@ -11,11 +11,15 @@ app.listen(port,()=>{
 app.use(exp.urlencoded({extended:true}))
 app.use(exp.json())
 
-app.use(exp.static(path.join(__dirname, "public")));
+app.use(exp.static(path.join(__dirname, 'public')));
+app.use(exp.static(path.join(__dirname, "partials")));
 app.use(cookieParser())
 
 app.set('view engine','ejs')
-app.set('views',path.join(__dirname,'views'))
+app.set('views',[
+    (path.join(__dirname,'views')),
+    (path.join(__dirname,'views','hospital'))
+])
 
 app.use("/uploads",exp.static("uploads"));
 
@@ -42,6 +46,9 @@ app.use('/',recipientroutes)
 
 const hospitaltauthroute = require('./routes/hospital/authdashboard')
 app.use('/',hospitaltauthroute)
+
+const hospitalProfileroute = require('./routes/hospital/profileRequestroutes')
+app.use('/',hospitalProfileroute)
 // app.get('/',(req,res)=>{
 //     res.render('index')
 // })   

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Update Recipient Profile</title>
+</head>
+
+<body>
+
+    <h1>Update Recipient Profile</h1>
+
+    <hr>
+
+    <form action="/recipient/update" method="POST" enctype="multipart/form-data" >
+
+        <label>Registered Hospital</label>
+
+        <br><br>
+
+        <!-- Later this will be dynamically loaded from hospital table -->
+
+        <select name="hospital_id" required>
+
+            <option value="">Select Hospital</option>
+
+            <% hospitals.forEach(hospital => { %>
+
+                <option value="<%= hospital.hospital_id %>">
+
+                    <%= hospital.hospital_name %>
+
+                </option>
+
+            <% }) %>
+
+        </select>
+
+        <br><br>
+
+        <label>Medical Report</label>
+
+        <br><br>
+
+        <input
+        type="file"
+        name="medical_report"
+        accept=".pdf,.jpg,.png"
+        required
+    >
+
+        <br><br>
+
+        <label>Confirm Password</label>
+
+        <br><br>
+
+        <input
+            type="password"
+            name="password"
+            required
+        >
+
+        <br><br>
+
+        <button type="submit" onclick="submiter()">
+
+        Update Recipient Profile
+
+        </button>
+
+    </form>
+
+    <br>
+
+    <a href="/dashboard">
+
+        Back to Dashboard
+
+    </a>
+
+</body>
+
+</html>
+
+<script>
+    function submiter() {
+        let consent = confirm("I agree that the details updated by me for Recipient registration are valid")
+        
+    }
+</script>
