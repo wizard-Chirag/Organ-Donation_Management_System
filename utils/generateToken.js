@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
 const patientKey = process.env.patientBHADRA
+const profileKey = process.env.profileBHADRA
 const hospitalKey = process.env.hospitalBHADRA
 
 const GenerateToken = (user)=>{
@@ -13,6 +14,18 @@ const GenerateToken = (user)=>{
     })
 
     return token
+}
+
+const ProfileToken = (id)=>{
+
+    let payload = {
+       profile_id: id
+    }
+    const Profiletoken = jwt.sign(payload,profileKey,{
+        expiresIn:'5m'
+    })
+
+    return Profiletoken
 }
 
 const hospitalGenToken = (hospital)=>{
@@ -29,4 +42,4 @@ const hospitalGenToken = (hospital)=>{
     return hospitalToken
 }
 
-module.exports = {GenerateToken,hospitalGenToken}
+module.exports = {GenerateToken,ProfileToken,hospitalGenToken}

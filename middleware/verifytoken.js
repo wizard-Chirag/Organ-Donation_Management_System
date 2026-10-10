@@ -34,6 +34,40 @@ const verifyUserToken = (req, res, next) => {
     }
 };
 
+const verifyProfileToken = (req, res, next) => {
+
+    // Read JWT from cookie
+    const token = req.cookies.Profiletoken;
+
+    // No token found
+    if (!token) {
+        console.log('no token generated/found:user')
+        return res.redirect("/dashboard");
+    }
+
+    try {
+
+        // Verify token
+        const decoded = jwt.verify(
+            token,
+            process.env.patientBHADRA
+        );
+
+        // Store user details for later controllers
+        req.profile = decoded;
+
+        next();
+
+    } catch (err) {
+        // Invalid or expired token
+        res.clearCookie("token");
+
+        console.log(err)
+        return res.redirect("/dashboard");
+
+    }
+};
+
 const verifyHospitalToken = (req, res, next) => {
 
     // Read JWT from cookie
@@ -68,4 +102,8 @@ const verifyHospitalToken = (req, res, next) => {
     }
 };
 
-module.exports = {verifyUserToken,verifyHospitalToken};
+module.exports = {
+    verifyUserToken,
+    verifyProfileToken,
+    verifyHospitalToken
+};

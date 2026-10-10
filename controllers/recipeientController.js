@@ -1,6 +1,90 @@
 const db = require('../config/db')
+const { ProfileToken } = require('../utils/generateToken')
 const {comparePassword} = require('../utils/passwords')
 
+const showProfileLogin = (req,res)=>{
+    console.log('recipient login page loaded')
+    return res.render('recipient/recipientLogin',
+        {
+            message:null
+        }
+    )
+}
+
+const unLockProfile = async (req,res)=>{
+
+    try {
+
+        const {
+            recipient_id ,
+            password
+        } = req.body
+
+        const recipient = await db.query(
+            `select * from recipient_profile
+            where user_id =$1`,
+            [recipient_id]
+        ) 
+
+        // IF RECIPIENT PROFILE NOT PRESENT THEN REDIRECT BACK 
+        if(recipient.rows.length==0){
+            console.log('Invalid credentials profile')
+            return res.json(
+                {
+                    success:false,
+                    message:'Invalid credentials / Profile not found'
+                }
+            )
+        }
+
+        const id = recipient.rows[0].recipient_id
+
+        const hashedPassword = recipient.rows[0].recipient_password
+
+        const compare = comparePassword(password,hashedPassword) 
+
+        if(!compare){
+            return res.json(
+                {
+                    success:false,
+                    message:'Incorrect Password'
+                }
+            )
+        }
+
+        let profileToken = ProfileToken(id)
+                res.cookie('profileToken',profileToken,{
+        
+                        httpOnly: true,
+                        secure: false,
+                        sameSite: "lax",
+                        maxAge: 5 * 60 * 1000
+                })
+
+         const hospital = await db.query(
+                `select * from hospital
+                where hospital_id =$1`,
+                [recipient.rows[0].registered_hospital_id]
+            )
+
+            res.json(
+            {
+                success:true,
+                message:'Welcome to your Recipient Profile'
+            }
+        )
+            return res.render('recipient/recipientDashboard',{
+                user:user.rows[0],
+                recipient:recipient.rows[0],
+                hospital:hospital.rows[0]
+            })
+
+    } catch (error) {
+        
+        console.log(error)
+        res.send('Internal server error')
+    }
+}
 
 const showRecipientProfile = async (req,res) => {
 
@@ -19,20 +103,15 @@ const showRecipientProfile = async (req,res) => {
             [user_id]
         ) 
     
+        // IF RECIPIENT PROFILE OF USER PRESENT
         if(recipient.rows.length>0){
-            console.log("Showing recipient profile ")
-            const hospital = await db.query(
-                `select * from hospital
-                where hospital_id =$1`,
-                [recipient.rows[0].registered_hospital_id]
-            )
-            return res.render('recipient/recipientDashboard',{
-                user:user.rows[0],
-                recipient:recipient.rows[0],
-                hospital:hospital.rows[0]
-            })
-        }
+            console.log("Recipient profile Login page loaded")
 
+             return res.render('recipient/recipientLogin',{
+                message:`Recipient profile of user : ${user.rows[0].name} already present`
+             })
+
+        }
         const medical_record = await db.query(
             `select * from user_medical_info
             where user_id = $1`,
@@ -40,7 +119,7 @@ const showRecipientProfile = async (req,res) => {
         )
 
 
-
+        // IF MEDICAL INFO OF USER IS FEEDED BUT RECIPIENT PROFILE NOT CREATED
         if(medical_record.rows.length>0){
 
             const hospital = await db.query(
@@ -54,6 +133,7 @@ const showRecipientProfile = async (req,res) => {
             })
         }
 
+        // IF MEDICAL INFO OF USER NOT FOUND
         console.log('User Medical page not present')
         return res.redirect('/medical')
 
@@ -70,7 +150,8 @@ const createRecipient = async (req,res) => {
         console.log(req.body);
         const {
             hospital_id,
-            password
+            password,
+            profilePassword
         } = req.body
 
         const legal_document = req.file;
@@ -78,6 +159,7 @@ const createRecipient = async (req,res) => {
         if(
             !legal_document ||
             !hospital_id ||
+            !profilePassword ||
             !password
         ){
             return res.send("All fields are mandatory")
@@ -108,9 +190,9 @@ const createRecipient = async (req,res) => {
 
         await db.query(
             `insert into recipient_profile
-            (user_id,recipient_status,registered_hospital_id,attested_document_path,verification_status)
-            values($1,$2,$3,$4,$5)`,
-            [user_id,'Active',hospital_id,legal_document.path,'Pending']
+            (user_id,recipient_status,registered_hospital_id,attested_document_path,verification_status,recipient_password)
+            values($1,$2,$3,$4,$5,$6)`,
+            [user_id,'Active',hospital_id,legal_document.path,'Pending',profilePassword]
         )
         console.log("Recipient profile request created")
 
@@ -144,15 +226,19 @@ const showUpdateRecipient = async (req,res) => {
             return res.redirect('/recipient')
         }
 
-        const hospital = await db.query(
+        if(recipient.rows.length>0 && recipient.rows[0].verification_status != 'Approved')
+        {
+            const hospital = await db.query(
                 `select hospital_name, hospital_id from hospital`
             )
 
-        return res.render('recipient/updateRecipient',{
+            return res.render('recipient/updateRecipient',{
             user:user.rows[0],
             hospitals:hospital.rows
         })
-
+        
+        }
+        res.send('Recipient profile already approved, cannot be updated')
     } catch (error) {
         console.log(error)
         res.send('Internal server error')
@@ -220,12 +306,14 @@ const updateRecipientProfile = async (req,res) => {
         res.status(500).send("Internal Server Error");
     }
 
-
 }
+
 
 module.exports = {
     createRecipient,
     showRecipientProfile,
     showUpdateRecipient,
-    updateRecipientProfile
+    updateRecipientProfile,
+    showProfileLogin,
+    unLockProfile
 }
