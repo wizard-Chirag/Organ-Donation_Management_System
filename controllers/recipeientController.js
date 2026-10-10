@@ -1,6 +1,6 @@
 const db = require('../config/db')
 const { ProfileToken } = require('../utils/generateToken')
-const {comparePassword} = require('../utils/passwords')
+const {comparePassword,hashPassword} = require('../utils/passwords')
 
 const showProfileLogin = (req,res)=>{
     console.log('recipient login page loaded')
@@ -151,7 +151,7 @@ const createRecipient = async (req,res) => {
         const {
             hospital_id,
             password,
-            profilePassword
+            profile_password,
         } = req.body
 
         const legal_document = req.file;
@@ -159,8 +159,8 @@ const createRecipient = async (req,res) => {
         if(
             !legal_document ||
             !hospital_id ||
-            !profilePassword ||
-            !password
+            !password ||
+            !profile_password
         ){
             return res.send("All fields are mandatory")
         }
@@ -180,19 +180,21 @@ const createRecipient = async (req,res) => {
             where user_id = $1`,
             [user_id]
         )
-        const hashPassword = user.rows[0].password
 
-        const result = await comparePassword(password,hashPassword)
+        const hashedPassword = user.rows[0].password
+
+        const result = await comparePassword(password,hashedPassword)
 
         if(!result){
            return  res.send('Enter valid password')
         }
+        const newPassword = await hashPassword(profile_password)
 
         await db.query(
             `insert into recipient_profile
             (user_id,recipient_status,registered_hospital_id,attested_document_path,verification_status,recipient_password)
             values($1,$2,$3,$4,$5,$6)`,
-            [user_id,'Active',hospital_id,legal_document.path,'Pending',profilePassword]
+            [user_id,'Active',hospital_id,legal_document.path,'Pending',newPassword]
         )
         console.log("Recipient profile request created")
 

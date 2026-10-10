@@ -14,20 +14,22 @@
 
     <h3>User Information</h3>
 
-    <p><strong>Name :</strong> <%= user.name %></p>
-    <p><strong>Email :</strong> <%= user.email %></p>
-    <p><strong>Phone :</strong> <%= user.phone_number %></p>
-    <p><strong>Blood Group :</strong> <%= user.blood_group %></p>
+    <p><strong>Name:</strong> <%= user.name %></p>
+    <p><strong>Email:</strong> <%= user.email %></p>
+    <p><strong>Phone:</strong> <%= user.phone_number %></p>
+    <p><strong>Blood Group:</strong> <%= user.blood_group %></p>
 
     <hr>
 
-    <form action="/recipient" method="POST" enctype="multipart/form-data">
+    <form
+        id="recipientForm"
+        action="/recipient"
+        method="POST"
+        enctype="multipart/form-data"
+    >
 
         <label>Registered Hospital</label>
-
         <br><br>
-
-        <!-- Later this will be dynamically loaded from hospital table -->
 
         <select name="hospital_id" required>
 
@@ -36,9 +38,7 @@
             <% hospitals.forEach(hospital => { %>
 
                 <option value="<%= hospital.hospital_id %>">
-
                     <%= hospital.hospital_name %>
-
                 </option>
 
             <% }) %>
@@ -48,61 +48,126 @@
         <br><br>
 
         <label>Medical Report</label>
-
         <br><br>
 
         <input
-        type="file"
-        name="medical_report"
-        accept=".pdf,.jpg,.png"
-        required
-    >
-
-        <br><br>
-
-        <label >Create Profile password</label>
-        <br><br>
-
-        <input type="password"
-               name="profilePassword"
-               required>
-
-               <br> <br>
-        <label>Confirm Password</label>
-
-        <br><br>
-
-        <input
-            type="password"
-            name="password"
+            type="file"
+            name="medical_report"
+            accept=".pdf,.jpg,.jpeg,.png"
             required
         >
 
         <br><br>
 
-        <button type="submit" onclick="submiter()">
+        <label>Create Profile Password</label>
+        <br><br>
 
+        <input
+            type="password"
+            name="profile_password"
+            id="password"
+            placeholder="Create new password"
+            required
+        >
+
+        <br><br>
+
+        <input
+            type="password"
+            id="confirmPassword"
+            placeholder="Re-enter new password"
+            required
+        >
+
+        <p id="message"></p>
+
+        <br>
+
+        <label>Enter User Password</label>
+        <br><br>
+
+        <input
+            type="password"
+            name="password"
+            id="userPassword"
+            placeholder="Enter your existing user password"
+            required
+        >
+
+        <br><br>
+
+        <button type="submit">
             Create Recipient Profile
-
         </button>
 
     </form>
 
     <br>
 
-    <a href="/dashboard">
+    <a href="/dashboard">Back to Dashboard</a>
 
-        Back to Dashboard
+    <script>
 
-    </a>
+        const form = document.getElementById("recipientForm");
+
+        function checkPassword() {
+
+            const password =
+                document.getElementById("password").value;
+
+            const confirmPassword =
+                document.getElementById("confirmPassword").value;
+
+            const message =
+                document.getElementById("message");
+
+            if (password !== confirmPassword) {
+
+                message.textContent = "Passwords do not match!";
+                message.style.color = "red";
+
+                return false;
+            }
+
+            message.textContent = "Passwords match!";
+            message.style.color = "green";
+
+            return true;
+        }
+
+        form.addEventListener("submit", function (event) {
+
+            // Validate the new password and confirmation.
+            if (!checkPassword()) {
+
+                event.preventDefault();
+                return;
+            }
+
+            // Ask for consent before submitting.
+            const consent = confirm(
+                "I agree that the details given by me for Recipient registration are valid."
+            );
+
+            if (!consent) {
+                event.preventDefault();
+                return;
+            }
+
+            // Both checks passed.
+            // The browser submits the form to /recipient.
+        });
+
+        // Show a mismatch immediately when the user edits either field.
+        document.getElementById("password")
+            .addEventListener("input", checkPassword);
+
+        document.getElementById("confirmPassword")
+            .addEventListener("input", checkPassword);
+
+    </script>
 
 </body>
 
 </html>
-
-<script>
-    function submiter() {
-        let consent = confirm("I agree that the given details by me for Recipient registration are valid")
-        
-    }
-</script>
+```

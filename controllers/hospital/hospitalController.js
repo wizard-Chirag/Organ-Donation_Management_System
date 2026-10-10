@@ -239,7 +239,7 @@ const manageRecipientRequests = async (req,res) => {
 
         let qurry =
         `select 
-        r.recipent_id,
+        r.recipient_id,
         u.user_id,
         u.name,
         u.gender,
@@ -302,8 +302,8 @@ const manageRecipientRequests = async (req,res) => {
         const results = await db.query(qurry,values)
 
         res.render('profile_requests/recipient_requests/recipientRequests',{
-            requests : results.rows,
-            hospital: req.hospital,
+            request : results.rows,
+            hospitals: req.hospital,
              search: search,
              gender: gender,
              status:status
@@ -341,7 +341,7 @@ const RecipientRequestAction = async (req,res) => {
 
         const request = await db.query(
             `select * from recipient_profile
-            where recipent_id = $1`,
+            where recipient_id = $1`,
             [request_id]
         )
         if(request.rows.length==0){

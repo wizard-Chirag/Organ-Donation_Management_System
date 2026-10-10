@@ -1,7 +1,91 @@
 // READY FOR LAUNCH
 const db = require('../config/db')
-const { comparePassword } = require('../utils/passwords')
+const { comparePassword, hashPassword} = require('../utils/passwords')
 
+
+const showProfileLogin = (req,res)=>{
+    console.log('donor login page loaded')
+    return res.render('donor/donorLogin',
+        {
+            message:null
+        }
+    )
+}
+
+const unLockProfile = async (req,res)=>{
+
+    try {
+
+        const {
+            donor_id ,
+            password
+        } = req.body
+
+        const donor = await db.query(
+            `select * from donor_profile
+            where user_id =$1`,
+            [donor_id]
+        ) 
+
+        // IF RECIPIENT PROFILE NOT PRESENT THEN REDIRECT BACK 
+        if(donor.rows.length==0){
+            console.log('Invalid credentials profile')
+            return res.json(
+                {
+                    success:false,
+                    message:'Invalid credentials / Profile not found'
+                }
+            )
+        }
+
+        const id = donor.rows[0].donor_id
+
+        const hashedPassword = donor.rows[0].donor_password
+
+        const compare = comparePassword(password,hashedPassword) 
+
+        if(!compare){
+            return res.json(
+                {
+                    success:false,
+                    message:'Incorrect Password'
+                }
+            )
+        }
+
+        let profileToken = ProfileToken(id)
+                res.cookie('profileToken',profileToken,{
+        
+                        httpOnly: true,
+                        secure: false,
+                        sameSite: "lax",
+                        maxAge: 5 * 60 * 1000
+                })
+
+         const hospital = await db.query(
+                `select * from hospital
+                where hospital_id =$1`,
+                [donor.rows[0].registered_hospital_id]
+            )
+
+            res.json(
+            {
+                success:true,
+                message:'Welcome to your Donor Profile'
+            }
+        )
+            return res.render('donor/donorDashboard',{
+                user:user.rows[0],
+                donor:donor.rows[0],
+                hospital:hospital.rows[0]
+            })
+
+    } catch (error) {
+        
+        console.log(error)
+        res.send('Internal server error')
+    }
+}
 
 const showDonorProfile = async (req,res)=>{
 
@@ -80,7 +164,8 @@ const createDonorProfile = async (req,res)=>{
             const {
             // legal_document,
             hospital_id,
-            password
+            password,
+            profile_password
         } = req.body
 
         const legal_document = req.file;
@@ -88,11 +173,17 @@ const createDonorProfile = async (req,res)=>{
         if(
             !legal_document ||
             !hospital_id ||
-            !password
+            !password ||
+            !profile_password
         ){
             return res.send("All fields are mandatory")
         }
 
+        const user = await db.query(
+            `select * from users
+            where user_id = $1`,
+            [user_id]
+        )
         const hospitalName = await db.query(
             `select hospital_name from hospital
             where hospital_id = $1`,
@@ -113,33 +204,13 @@ const createDonorProfile = async (req,res)=>{
             return res.send("Incorrect hospital details")
         }
 
-        const donor = await db.query(
-            `select * from donor_profile
-            where user_id = $1`,
-            [user_id]
-        )
-
-        // CHECK IF DONOR PROFILE EXISTS IF YES THEN UPDATE
-        if (donor.rows.length>0 && donor.rows[0].verification_status!='Approved') {
-
-             await db.query(
-                    `update donor_profile set
-                    hospital_name = $1,
-                    
-                    attested_document_path = $2
-                    where user_id = $3`,
-                    [hospital_id,legal_document.path,user_id]
-                )
-                console.log("Donor profile request updated")
-                return res.redirect('/dashboard')
-            
-        }
+        const newPassword = await hashPassword(profile_password)
 
         await db.query(
             `insert into donor_profile
-            (user_id,donor_status,registered_hospital_id,attested_document_path,verification_status)
-            values($1,$2,$3,$4,$5)`,
-            [user_id,'Active',hospital_id,legal_document.path,'Pending']
+            (user_id,donor_status,registered_hospital_id,attested_document_path,verification_status,donor_password)
+            values($1,$2,$3,$4,$5,$6)`,
+            [user_id,'Active',hospital_id,legal_document.path,'Pending',newPassword]
         )
         console.log("Donor profile request created")
 
@@ -246,6 +317,8 @@ const updateDonorProfile = async (req,res) => {
 }
 
 module.exports = {
+    showProfileLogin,
+    unLockProfile,
     createDonorProfile,
     showDonorProfile,
     showDonorUpdateProfile,

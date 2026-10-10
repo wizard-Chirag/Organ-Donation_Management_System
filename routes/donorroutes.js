@@ -14,13 +14,22 @@ const {
     showDonorProfile,
     createDonorProfile,
     updateDonorProfile,
-    showDonorUpdateProfile
+    showDonorUpdateProfile,
+    showProfileLogin,
+    unLockProfile
 } = require('../controllers/donorController')
 
-router.get('/donor',verifyUserToken,showDonorProfile)
-// router.get('/donor/update',verifyToken,showDonorProfile)
+// LOGIN PAGE
+router.get('/donor/login',verifyUserToken,showProfileLogin)
+router.post('/donor/login',verifyUserToken,unLockProfile)
 
+// DONOR OFFICIAL PROFILE
+router.get('/donor',verifyUserToken,showDonorProfile)
+
+// CREATION OF PROFILE
 router.post("/donor", verifyUserToken, donoFolder.single("medical_report"), createDonorProfile );
+
+//UPDATE THE PROFILE DETAILS
 router.get("/donor/update", verifyUserToken, donoFolder.single("medical_report"), showDonorUpdateProfile );
 router.post("/donor/update", verifyUserToken, donoFolder.single("medical_report"), updateDonorProfile );
 

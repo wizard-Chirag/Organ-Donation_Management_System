@@ -12,10 +12,10 @@
 
     <title>Recipient Profile Requests</title>
 
-    <!-- <link
+    <link
         rel="stylesheet"
         href="/css/hospitalRequests.css"
-    > -->
+    >
 
 </head>
 
@@ -26,16 +26,14 @@
 <div class="dashboard">
 
 
-    <!-- =========================
-         SIDEBAR
-    ========================== -->
+    <!-- SIDEBAR -->
+
+
 
     <div class="main">
 
 
-        <!-- =========================
-             NAVBAR
-        ========================== -->
+        <!-- NAVBAR -->
 
 
 
@@ -50,16 +48,13 @@
             <br>
 
 
-            <!-- =========================
-                 SEARCH / FILTER
-            ========================== -->
+            <!-- SEARCH -->
 
             <form
                 class="search-form"
                 method="GET"
                 action="/hospital/profile-requests/recipients"
             >
-
 
                 <input
                     type="text"
@@ -78,7 +73,7 @@
 
                     <option
                         value="male"
-                        <%= gender === 'Male' ? 'selected' : '' %>
+                        <%= gender === 'male' ? 'selected' : '' %>
                     >
                         Male
                     </option>
@@ -86,10 +81,43 @@
 
                     <option
                         value="female"
-                        <%= gender === 'Female' ? 'selected' : '' %>
+                        <%= gender === 'female' ? 'selected' : '' %>
                     >
                         Female
                     </option>
+
+
+                </select>
+
+                <select name="status">
+
+                    <option value="">
+                        Select Status
+                    </option>
+
+
+                    <option
+                        value="Approved"
+                        <%= status === 'Approved' ? 'selected' : '' %>
+                    >
+                        Approved
+                    </option>
+
+
+                    <option
+                        value="Rejected"
+                        <%= status === 'Rejected' ? 'selected' : '' %>
+                    >
+                       Rejected
+                    </option>
+
+                    <option
+                        value="Pending"
+                        <%= status === 'Pending' ? 'selected' : '' %>
+                    >
+                        Pending
+                    </option>
+
 
                 </select>
 
@@ -101,19 +129,15 @@
                     Search
                 </button>
 
-
             </form>
 
 
             <br>
 
 
-            <!-- =========================
-                 RECIPIENT REQUEST TABLE
-            ========================== -->
+            <!-- REQUEST TABLE -->
 
             <table id="recipientRequestTable">
-
 
                 <thead>
 
@@ -155,8 +179,7 @@
                 <tbody>
 
 
-                <% if (requests.length === 0) { %>
-
+                <% if (request.length === 0) { %>
 
                     <tr>
 
@@ -164,24 +187,21 @@
                             colspan="7"
                             class="no-data"
                         >
-
                             No recipient profile requests found.
-
                         </td>
 
                     </tr>
 
-
                 <% } %>
 
 
-                <% requests.forEach(request => { %>
+                <% request.forEach(request => { %>
 
 
                     <tr
                         class="request-row"
 
-                        data-request-id="<%= request.recipent_id %>"
+                        data-request-id="<%= request.recipient_id %>"
 
                         data-user-id="<%= request.user_id %>"
 
@@ -193,7 +213,7 @@
 
                         data-blood-group="<%= request.bloodgroup %>"
 
-                        data-hospital="<%= hospital.hospital_name %>"
+                        data-hospital="<%= hospitals.hospital_name %>"
 
                         data-document="<%= request.attested_document_path %>"
 
@@ -202,64 +222,40 @@
                         onclick="openRequest(this)"
                     >
 
-
                         <td>
-
-                            <%= request.recipent_id %>
-
+                            <%= request.recipient_id %>
                         </td>
 
-
                         <td>
-
                             <%= request.user_id %>
-
                         </td>
 
-
                         <td>
-
                             <%= request.name %>
-
                         </td>
 
-
                         <td>
-
                             <%= request.gender %>
-
                         </td>
 
-
                         <td>
-
                             <%= request.bloodgroup %>
-
                         </td>
 
-
                         <td>
-
-                            <%= hospital.hospital_name %>
-
+                            <%= hospitals.hospital_name %>
                         </td>
 
-
                         <td>
-
                             <%= request.registered_at %>
-
                         </td>
-
 
                     </tr>
-
 
                 <% }) %>
 
 
                 </tbody>
-
 
             </table>
 
@@ -271,17 +267,14 @@
 </div>
 
 
-
-<!-- =====================================================
-     RECIPIENT DETAILS MODAL
-====================================================== -->
-
+<!-- =================================================
+     DONOR REQUEST MODAL
+================================================= -->
 
 <div
     id="requestModal"
     class="modal-overlay"
 >
-
 
     <div
         id="requestModalContent"
@@ -307,101 +300,65 @@
 
 
             <p>
-
-                <strong>
-                    Request ID:
-                </strong>
+                <strong>Request ID:</strong>
 
                 <span id="modalRequestId"></span>
-
             </p>
 
 
             <p>
-
-                <strong>
-                    User ID:
-                </strong>
+                <strong>User ID:</strong>
 
                 <span id="modalUserId"></span>
-
             </p>
 
 
             <p>
-
-                <strong>
-                    Name:
-                </strong>
+                <strong>Name:</strong>
 
                 <span id="modalName"></span>
-
             </p>
 
 
             <p>
-
-                <strong>
-                    Gender:
-                </strong>
+                <strong>Gender:</strong>
 
                 <span id="modalGender"></span>
-
             </p>
 
 
             <p>
-
-                <strong>
-                    Date of Birth:
-                </strong>
+                <strong>Date of Birth:</strong>
 
                 <span id="modalDob"></span>
-
             </p>
 
 
             <p>
-
-                <strong>
-                    Blood Group:
-                </strong>
+                <strong>Blood Group:</strong>
 
                 <span id="modalBloodGroup"></span>
-
             </p>
 
 
             <p>
-
-                <strong>
-                    Hospital:
-                </strong>
+                <strong>Hospital:</strong>
 
                 <span id="modalHospital"></span>
-
             </p>
 
 
             <p>
-
-                <strong>
-                    Request Date:
-                </strong>
+                <strong>Requested At:</strong>
 
                 <span id="modalRequestedAt"></span>
-
             </p>
 
 
             <p>
-
-                <strong>
-                    Document:
-                </strong>
+                <strong>Document:</strong>
 
                 <span id="modalDocument"></span>
-
             </p>
 
 
@@ -418,17 +375,12 @@
 
             </div>
 
-
         </div>
 
 
-
-        <!-- =========================
-             ACTION BUTTONS
-        ========================== -->
+        <!-- ACTION BUTTONS -->
 
         <div class="modal-actions">
-
 
             <button
                 type="button"
@@ -447,7 +399,6 @@
                 Reject
             </button>
 
-
         </div>
 
 
@@ -455,19 +406,19 @@
 
 </div>
 
+<a href="/hospitalDashboard">Back to Dashboard</a>
+
 
 
 <script>
 
-
     let selectedRequestId = null;
 
 
-
     /*
-    =====================================================
-    OPEN REQUEST
-    =====================================================
+    ================================================
+    OPEN MODAL
+    ================================================
     */
 
     function openRequest(row)
@@ -546,9 +497,9 @@
 
 
     /*
-    =====================================================
+    ================================================
     CLOSE MODAL
-    =====================================================
+    ================================================
     */
 
     function closeModal()
@@ -564,12 +515,7 @@
     }
 
 
-
-    /*
-    =====================================================
-    APPROVE / REJECT
-    =====================================================
-    */
+    /*APPROVE / REJECT*/
 
     async function takeAction(action)
     {
@@ -586,9 +532,7 @@
         }
 
 
-        /*
-        Browser password popup
-        */
+        /*Browser password popup\*/
 
         const password =
             prompt(
@@ -596,15 +540,9 @@
             );
 
 
-        /*
-        User cancelled
-        */
-
         if (password === null)
         {
-
             return;
-
         }
 
 
@@ -618,7 +556,6 @@
             return;
 
         }
-
 
 
         try
@@ -657,7 +594,6 @@
                 await response.json();
 
 
-
             if (result.success)
             {
 
@@ -673,9 +609,10 @@
             }
             else
             {
+
                 alert(
                     result.message ||
-                    "Unexpected error"
+                    "Incorrect password."
                 );
 
             }
@@ -684,8 +621,8 @@
         catch(error)
         {
 
-            console.error(error);
-
+            console.log(error);
+            console.log("anthamma");
 
             alert(
                 "Something went wrong. Please try again."
@@ -698,9 +635,9 @@
 
 
     /*
-    =====================================================
-    CLICK OUTSIDE MODAL
-    =====================================================
+    ================================================
+    CLOSE WHEN CLICKING OUTSIDE MODAL
+    ================================================
     */
 
     document.getElementById(
@@ -710,9 +647,7 @@
         function(event)
         {
 
-            if (
-                event.target === this
-            )
+            if (event.target === this)
             {
 
                 closeModal();
@@ -721,7 +656,6 @@
 
         }
     );
-
 
 </script>
 
