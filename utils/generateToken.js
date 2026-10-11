@@ -22,7 +22,7 @@ const ProfileToken = (id)=>{
        profile_id: id
     }
     const Profiletoken = jwt.sign(payload,profileKey,{
-        expiresIn:'5m'
+        expiresIn:'7m'
     })
 
     return Profiletoken

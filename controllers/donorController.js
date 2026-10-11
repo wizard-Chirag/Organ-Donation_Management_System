@@ -86,17 +86,17 @@ const unLockProfile = async (req, res) => {
         }
 
         let profileToken = ProfileToken(id);
-        res.cookie('profileToken', profileToken, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: 5 * 60 * 1000
-        });
+        // res.cookie('profileToken', profileToken, {
+        //     httpOnly: true,
+        //     secure: false,
+        //     sameSite: "lax",
+        //     maxAge: 7 * 60 * 1000
+        // });
         res.cookie('Profiletoken', profileToken, {
             httpOnly: true,
             secure: false,
             sameSite: "lax",
-            maxAge: 5 * 60 * 1000
+            maxAge: 7 * 60 * 1000
         });
 
         if (isJson) {
@@ -421,9 +421,10 @@ const registerOrgan = async (req, res) => {
         const normalizedDocPath = medical_report.path.replace(/\\/g, '/');
 
         await db.query(
-            `insert into donor_organ (donor_id, organ_id, testing_hospital_id, test_date, medical_document_path, verification_status)
-             values ($1, $2, $3, $4, $5, $6)`,
-            [donor.rows[0].donor_id, organ_id, testing_hospital_id, test_date, normalizedDocPath, 'Pending']
+            `insert into donor_organ (donor_id, organ_id, verified_hospital_id, verified_at, medical_document_path, verification_status, 
+             donor_consent)
+             values ($1, $2, $3, $4, $5, $6, $7)`,
+            [donor.rows[0].donor_id, organ_id, testing_hospital_id, test_date, normalizedDocPath, 'Pending', 'Provided']
         );
 
         console.log("Organ registered successfully");
