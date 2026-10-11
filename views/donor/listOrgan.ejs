@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register New Organ | ODTMS</title>
+    <!-- <link rel="stylesheet" href="/css/listOrgan.css"> -->
+</head>
+
+<body>
+
+<main class="organ-container">
+
+    <header class="page-header">
+        <a href="/donor" class="back-link">&larr; Back to Donor Dashboard</a>
+
+        <h1>Register a New Organ</h1>
+
+        <p>
+            Submit your organ details and medical testing documents
+            for hospital verification.
+        </p>
+    </header>
+
+    <!-- Backend success/error message -->
+    <% if (typeof message !== "undefined" && message) { %>
+        <div class="message error-message" role="alert">
+            <%= message %>
+        </div>
+    <% } %>
+
+    <form
+        action="/donor/register-organ"
+        method="POST"
+        enctype="multipart/form-data"
+        id="organForm"
+    >
+
+        <!-- 1. Organ Information -->
+        <section class="form-section">
+
+            <h2>1. Organ Information</h2>
+
+            <div class="form-group">
+                <label for="organ_id">Organ Type</label>
+
+                <select id="organ_id" name="organ_id" required>
+                    <option value="">Select an organ</option>
+
+                    <% organs.forEach(organ => { %>
+                        <option value="<%= organ.organ_id %>">
+                            <%= organ.organ_name %>
+                        </option>
+                    <% }) %>
+
+                </select>
+            </div>
+
+        </section>
+
+
+        <!-- 2. Medical Testing Information -->
+        <section class="form-section">
+
+            <h2>2. Medical Testing Information</h2>
+
+            <div class="form-group">
+                <label for="testing_hospital_id">
+                    Testing Hospital
+                </label>
+
+                <select
+                    id="testing_hospital_id"
+                    name="testing_hospital_id"
+                    required
+                >
+                    <option value="">
+                        Select the hospital that conducted the tests
+                    </option>
+
+                    <% hospitals.forEach(hospital => { %>
+                        <option value="<%= hospital.hospital_id %>">
+                            <%= hospital.hospital_name %>
+                            <% if (hospital.city) { %>
+                                — <%= hospital.city %>
+                            <% } %>
+                        </option>
+                    <% }) %>
+
+                </select>
+
+                <small>
+                    Select the hospital that conducted the medical tests
+                    and issued the supporting document.
+                </small>
+            </div>
+
+
+            <div class="form-group">
+                <label for="test_date">
+                    Date of Medical Testing
+                </label>
+
+                <input
+                    type="date"
+                    id="test_date"
+                    name="test_date"
+                    max="<%= new Date().toISOString().split('T')[0] %>"
+                    required
+                >
+            </div>
+
+
+            <div class="form-group">
+                <label for="medical_report">
+                    Medical Testing Document
+                </label>
+
+                <input
+                    type="file"
+                    id="medical_report"
+                    name="medical_report"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    required
+                >
+
+                <small>
+                    Accepted formats: PDF, JPG, JPEG and PNG.
+                    Maximum file size: 5 MB.
+                </small>
+            </div>
+
+        </section>
+
+
+        <!-- 3. Donor Profile Password -->
+        <section class="form-section password-section">
+
+            <h2>3. Donor Profile Verification</h2>
+
+            <div class="form-group">
+                <label for="donor_password">
+                    Donor Profile Password
+                </label>
+
+                <input
+                    type="password"
+                    id="donor_password"
+                    name="donor_password"
+                    placeholder="Enter your donor profile password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <small>
+                    Enter your separate donor profile password to authorize
+                    this organ registration.
+                </small>
+            </div>
+
+        </section>
+
+
+        <!-- 4. Donor Consent -->
+        <section class="form-section consent-section">
+
+            <h2>4. Donor Consent</h2>
+
+            <div class="consent-box">
+
+                <input
+                    type="checkbox"
+                    id="donor_consent"
+                    name="donor_consent"
+                    value="yes"
+                    required
+                >
+
+                <label for="donor_consent">
+                    I confirm that I am voluntarily submitting this organ
+                    for the donation process. I consent to the hospital
+                    reviewing my submitted medical documents and using
+                    relevant information for verification and potential
+                    matching. I understand that registration does not
+                    guarantee medical eligibility or a transplant, and
+                    that all applicable medical, legal and hospital
+                    approval procedures must be completed.
+                </label>
+
+            </div>
+
+        </section>
+
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+
+            <button type="submit" id="submitButton">
+                Submit Organ for Verification
+            </button>
+
+            <a href="/donor" class="cancel-link">
+                Cancel
+            </a>
+
+        </div>
+
+        <p class="footer-note">
+            Your submission will remain pending verification until the
+            required hospital review is completed.
+        </p>
+
+    </form>
+
+</main>
+
+
+<script>
+    const organForm = document.getElementById("organForm");
+    const medicalReport = document.getElementById("medical_report");
+    const submitButton = document.getElementById("submitButton");
+
+    organForm.addEventListener("submit", function(event) {
+
+        // Check whether a file has been selected
+        if (medicalReport.files.length === 0) {
+            event.preventDefault();
+            alert("Please upload your medical testing document.");
+            return;
+        }
+
+        const file = medicalReport.files[0];
+        const maxSize = 5 * 1024 * 1024;
+
+        const allowedTypes = [
+            "application/pdf",
+            "image/jpeg",
+            "image/png"
+        ];
+
+        // File size validation
+        if (file.size > maxSize) {
+            event.preventDefault();
+            alert("The document must not exceed 5 MB.");
+            return;
+        }
+
+        // File type validation
+        if (!allowedTypes.includes(file.type)) {
+            event.preventDefault();
+            alert("Upload only a PDF, JPG, JPEG or PNG file.");
+            return;
+        }
+
+        // Prevent accidental repeated submissions
+        submitButton.disabled = true;
+        submitButton.textContent = "Verifying and submitting...";
+    });
+</script>
+
+</body>
+</html>

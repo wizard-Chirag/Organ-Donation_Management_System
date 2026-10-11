@@ -21,13 +21,11 @@
 
     <hr> -->
 
-    <form action="/donor/update" method="POST" enctype="multipart/form-data" onclick="submiter()">
+    <form action="/donor/update" method="POST" enctype="multipart/form-data" onsubmit="return submiter()">
 
         <label>Registered Hospital</label>
 
         <br><br>
-
-        <!-- Later this will be dynamically loaded from hospital table -->
 
         <select name="hospital_id" required>
 
@@ -52,15 +50,15 @@
         <br><br>
 
         <input
-        type="file"
-        name="medical_report"
-        accept=".pdf,.jpg,.png"
-        required
-    >
+            type="file"
+            name="medical_report"
+            accept=".pdf,.jpg,.jpeg,.png"
+            required
+        >
 
         <br><br>
 
-        <label>Confirm Password</label>
+        <label>Confirm User Password</label>
 
         <br><br>
 
@@ -73,19 +71,15 @@
         <br><br>
 
         <button type="submit">
-
-        Update Donor Profile
-
-    </button>
+            Update Donor Profile
+        </button>
 
     </form>
 
     <br>
 
     <a href="/dashboard">
-
         Back to Dashboard
-
     </a>
 
 </body>
@@ -94,7 +88,6 @@
 
 <script>
     function submiter() {
-        let consent = confirm("I agree that the details updated by me for donor registration are valid")
-        
+        return confirm("I agree that the details updated by me for donor registration are valid");
     }
-</script>
+</script>

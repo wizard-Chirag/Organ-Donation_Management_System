@@ -100,18 +100,13 @@ const manageRequests = async (req, res) => {
 
 
         res.render(
-            "profile_requests/donor_Requests/1",
+            "profile_requests/donor_requests/1",
             {
                 request: result.rows,
-
                 search: search,
-
                 gender: gender,
-
-                status:status,
-
-                hospitals : req.hospital
- 
+                status: status,
+                hospitals: req.hospital
             }
         );
 
@@ -246,7 +241,8 @@ const manageRecipientRequests = async (req,res) => {
         u.dob,
         m.bloodgroup,
         r.registered_at,
-        r.attested_document_path
+        r.attested_document_path,
+        r.verification_status
         
         from recipient_profile r
         JOIN users u 
@@ -392,8 +388,9 @@ const RecipientRequestAction = async (req,res) => {
 
         await db.query(
             `update recipient_profile set
-            verification_status = $1`,
-            [newAction]
+            verification_status = $1
+            where recipient_id = $2`,
+            [newAction, request_id]
         )
         
         return res.json(

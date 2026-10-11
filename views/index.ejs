@@ -59,11 +59,16 @@
 
 </form>
 
-<hr>
-
 <h2>Register</h2>
 
+<% if (typeof registerError !== "undefined" && registerError) { %>
+    <p style="color:red;">
+        <%= registerError %>
+    </p>
+<% } %>
+
 <form action="/register" method="POST">
+
 
     <input
         type="text"

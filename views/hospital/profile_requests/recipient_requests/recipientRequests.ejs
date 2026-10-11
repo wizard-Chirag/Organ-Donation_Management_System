@@ -14,7 +14,7 @@
 
     <link
         rel="stylesheet"
-        href="/css/hospitalRequests.css"
+        href="/css/hospital_profile_request.css"
     >
 
 </head>
@@ -195,63 +195,29 @@
                 <% } %>
 
 
-                <% request.forEach(request => { %>
-
+                <% request.forEach(reqItem => { %>
 
                     <tr
                         class="request-row"
-
-                        data-request-id="<%= request.recipient_id %>"
-
-                        data-user-id="<%= request.user_id %>"
-
-                        data-name="<%= request.name %>"
-
-                        data-gender="<%= request.gender %>"
-
-                        data-dob="<%= request.dob %>"
-
-                        data-blood-group="<%= request.bloodgroup %>"
-
+                        data-request-id="<%= reqItem.recipient_id %>"
+                        data-user-id="<%= reqItem.user_id %>"
+                        data-name="<%= reqItem.name %>"
+                        data-gender="<%= reqItem.gender %>"
+                        data-dob="<%= reqItem.dob %>"
+                        data-blood-group="<%= reqItem.bloodgroup %>"
                         data-hospital="<%= hospitals.hospital_name %>"
-
-                        data-document="<%= request.attested_document_path %>"
-
-                        data-requested-at="<%= request.registered_at %>"
-
+                        data-document="<%= reqItem.attested_document_path %>"
+                        data-requested-at="<%= reqItem.registered_at %>"
                         onclick="openRequest(this)"
                     >
-
-                        <td>
-                            <%= request.recipient_id %>
-                        </td>
-
-                        <td>
-                            <%= request.user_id %>
-                        </td>
-
-                        <td>
-                            <%= request.name %>
-                        </td>
-
-                        <td>
-                            <%= request.gender %>
-                        </td>
-
-                        <td>
-                            <%= request.bloodgroup %>
-                        </td>
-
-                        <td>
-                            <%= hospitals.hospital_name %>
-                        </td>
-
-                        <td>
-                            <%= request.registered_at %>
-                        </td>
-
+                        <td><%= reqItem.recipient_id %></td>
+                        <td><%= reqItem.user_id %></td>
+                        <td><%= reqItem.name %></td>
+                        <td><%= reqItem.gender %></td>
+                        <td><%= reqItem.bloodgroup %></td>
+                        <td><%= hospitals.hospital_name %></td>
+                        <td><%= reqItem.registered_at %></td>
                     </tr>
-
                 <% }) %>
 
 

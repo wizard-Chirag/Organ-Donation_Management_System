@@ -9,13 +9,12 @@
 
 <body>
 
-```
 <h1>Hospital Login</h1>
 
 <p>Login using your registered hospital credentials.</p>
 
 <% if (error) { %>
-    <p><%= error %></p>
+    <p style="color:red;"><%= error %></p>
 <% } %>
 
 <form action="/hospital/login" method="POST">
@@ -61,8 +60,8 @@
 <a href="/">
     Back to User Login
 </a>
-```
 
 </body>
+
 
 </html>

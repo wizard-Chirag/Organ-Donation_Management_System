@@ -35,7 +35,7 @@
 
 <p>
     <strong>Blood Group:</strong>
-    <%= user.blood_group %>
+    <%= medical && medical.bloodgroup ? medical.bloodgroup : (user.blood_group || 'Not recorded') %>
 </p>
 
 <p>
@@ -80,17 +80,13 @@
 
     <br><br>
 
-    <label for="">Blood Group</label><br>
-    <select name="bloodgroup" id="">
+    <label for="bloodgroup">Blood Group</label><br>
+    <select name="bloodgroup" id="bloodgroup" required>
         <option value="">Select</option>
-        <option value="A+">A+</option>
-        <option value="A-">A-</option>
-        <option value="B+">B+</option>
-        <option value="B-">B-</option>
-        <option value="AB+">AB+</option>
-        <option value="AB-">AB-</option>
-        <option value="O-">O-</option>
-        <option value="O+">O+</option>
+        <% const bgOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]; %>
+        <% bgOptions.forEach(bg => { %>
+            <option value="<%= bg %>" <%= (medical && medical.bloodgroup === bg) ? "selected" : "" %>><%= bg %></option>
+        <% }) %>
     </select>
 
     <br><br>
@@ -106,13 +102,13 @@
 
         <option
             value="true"
-            <%= medical && medical.smoker ? "selected" : "" %>>
+            <%= medical && (medical.smoker === true || medical.smoker === "true") ? "selected" : "" %>>
             Yes
         </option>
 
         <option
             value="false"
-            <%= medical && medical.smoker === false ? "selected" : "" %>>
+            <%= medical && (medical.smoker === false || medical.smoker === "false") ? "selected" : "" %>>
             No
         </option>
 
@@ -131,13 +127,13 @@
 
         <option
             value="true"
-            <%= medical && medical.alcoholic ? "selected" : "" %>>
+            <%= medical && (medical.alcoholic === true || medical.alcoholic === "true") ? "selected" : "" %>>
             Yes
         </option>
 
         <option
             value="false"
-            <%= medical && medical.alcoholic === false ? "selected" : "" %>>
+            <%= medical && (medical.alcoholic === false || medical.alcoholic === "false") ? "selected" : "" %>>
             No
         </option>
 
@@ -152,6 +148,7 @@
         rows="6"
         cols="50"
         maxlength="1000"
+        required
     ><%= medical ? medical.medical_summary : '' %></textarea>
 
     <br><br>
@@ -175,7 +172,7 @@
         type="text"
         name="emergency_contact_number"
         maxlength="15"
-        value="<%= medical ? medical.emergency_contact_phone : '' %>"
+        value="<%= medical ? medical.emergency_contact_number : '' %>"
         required
     >
 
@@ -191,32 +188,32 @@
         <option value="">Select</option>
 
         <option value="Father"
-        <%= medical && medical.emergency_relationship=="Father" ? "selected" : "" %>>
+        <%= medical && medical.emergency_contact_relation=="Father" ? "selected" : "" %>>
         Father
         </option>
 
         <option value="Mother"
-        <%= medical && medical.emergency_relationship=="Mother" ? "selected" : "" %>>
+        <%= medical && medical.emergency_contact_relation=="Mother" ? "selected" : "" %>>
         Mother
         </option>
 
         <option value="Sibling"
-        <%= medical && medical.emergency_relationship=="Sibling" ? "selected" : "" %>>
+        <%= medical && medical.emergency_contact_relation=="Sibling" ? "selected" : "" %>>
         Sibling
         </option>
 
         <option value="Spouse"
-        <%= medical && medical.emergency_relationship=="Spouse" ? "selected" : "" %>>
+        <%= medical && medical.emergency_contact_relation=="Spouse" ? "selected" : "" %>>
         Spouse
         </option>
 
         <option value="Child"
-        <%= medical && medical.emergency_relationship=="Child" ? "selected" : "" %>>
+        <%= medical && medical.emergency_contact_relation=="Child" ? "selected" : "" %>>
         Child
         </option>
 
         <option value="Other"
-        <%= medical && medical.emergency_relationship=="Other" ? "selected" : "" %>>
+        <%= medical && medical.emergency_contact_relation=="Other" ? "selected" : "" %>>
         Other
         </option>
 
@@ -243,6 +240,7 @@
     </button>
 
 </form>
+
 
 <br>
 

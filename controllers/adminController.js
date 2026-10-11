@@ -1,59 +1,70 @@
 const db = require("../config/db");
-const bcrypt = require('../utils/passwords')
+const bcrypt = require('../utils/passwords');
 
-
-const registerHospital= async (req,res)=>{
-    // console.log(req.body)
-    console.log("User registration")
-    // res.send("User registration")
+const registerHospital = async (req, res) => {
+    console.log("Hospital registration attempt");
 
     try {
-        const {id,name,email,contact_number,password,license_number,city,status,transplant_beds} = req.body
+        const { id, name, email, contact_number, password, license_number, city, status, transplant_beds } = req.body;
 
-        console.log(name,email,contact_number,password,license_number,city,status,transplant_beds)
-        if(!id || !name || !email || !contact_number 
-            || !password || !license_number || !city || !status || !transplant_beds)
-            {
-                return res.send("All fields are mandatory")
-            }
+        if (!id || !name || !email || !contact_number 
+            || !password || !license_number || !city || !status || !transplant_beds) {
+            return res.status(400).send("All fields are mandatory");
+        }
 
-        const contact = await db.query(`select * from hospital where contact_number = $1`,
+        const idCheck = await db.query(
+            `select * from hospital where hospital_id = $1`,
+            [id]
+        );
+        if (idCheck.rows.length > 0) {
+            return res.status(400).send("Hospital ID already present");
+        }
+
+        const contact = await db.query(
+            `select * from hospital where contact_number = $1`,
             [contact_number]
-        )
-        if(contact.rows.length>0){
-            return res.send("Phone number already present")
+        );
+        if (contact.rows.length > 0) {
+            return res.status(400).send("Phone number already present");
         }
 
-        const Licence = await db.query(`select * from hospital where license_no = $1`,
+        const emailCheck = await db.query(
+            `select * from hospital where hospital_email = $1`,
+            [email]
+        );
+        if (emailCheck.rows.length > 0) {
+            return res.status(400).send("Email already present");
+        }
+
+        const licenceCheck = await db.query(
+            `select * from hospital where license_no = $1`,
             [license_number]
-        )
-        if(Licence.rows.length>0){
-            return res.send("email already present")
+        );
+        if (licenceCheck.rows.length > 0) {
+            return res.status(400).send("License number already present");
         }
 
-
-        const hashedPassword = await bcrypt.hashPassword(password)
+        const hashedPassword = await bcrypt.hashPassword(password);
 
         await db.query(
-            `insert into hospital(hospital_id,hospital_name,hospital_email,contact_number,hospital_password,license_no,city,status,transplant_beds)
-            values( $1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            `insert into hospital(hospital_id, hospital_name, hospital_email, contact_number, hospital_password, license_no, city, status, transplant_beds)
+            values($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
             [
-                id,name,email,contact_number,hashedPassword,license_number,city,status,transplant_beds
+                id, name, email, contact_number, hashedPassword, license_number, city, status, transplant_beds
             ]
-        )
+        );
 
-        console.log('Hospital registered successfully')
-        res.redirect('/adminAnthamma')
+        console.log('Hospital registered successfully');
+        res.redirect('/adminAnthamma');
 
     } catch (err) {
-        console.error(err);
-
+        console.error("Admin hospital registration error:", err);
         res.status(500).send("Internal Server Error");
     }
-}
+};
 
-const showadmin = (req,res)=>{
-    res.render('adminindex')
-}
+const showadmin = (req, res) => {
+    res.render('adminIndex');
+};
 
-module.exports={registerHospital,showadmin}
+module.exports = { registerHospital, showadmin };
