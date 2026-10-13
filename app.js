@@ -47,6 +47,9 @@ app.use('/', hospitaltauthroute)
 const hospitalProfileroute = require('./routes/hospital/profileRequestroutes')
 app.use('/', hospitalProfileroute)
 
+const hospitalOrganroute = require('./routes/hospital/organRequestroutes')
+app.use('/', hospitalOrganroute)
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error("Unhandled error:", err);
@@ -60,4 +63,4 @@ app.use((req, res) => {
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`)
-})
+})

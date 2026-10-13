@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Organ Listing Requests | ODTMS</title>
+
+    <!-- <link rel="stylesheet" href="/css/hospitalRequests.css"> -->
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0b1120;
+            color: #e5e7eb;
+        }
+
+        .organ-page {
+            max-width: 1500px;
+            margin: auto;
+            padding: 30px;
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+            align-items: center;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 12px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background: #111c30;
+            color: #e5e7eb;
+            min-width: 180px;
+        }
+
+        .filters button,
+        .btn {
+            padding: 11px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .filter-btn {
+            background: #2563eb;
+            color: white;
+        }
+
+        .reset-btn {
+            background: #334155;
+            color: white;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #263449;
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .request-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        .request-table th,
+        .request-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #263449;
+        }
+
+        .request-table th {
+            color: #94a3b8;
+            background: #111c30;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .request-table tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .request-table tbody tr:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .request-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .view-btn {
+            background: #1d4ed8;
+            color: white;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .status-pending {
+            background: #422006;
+            color: #fbbf24;
+        }
+
+        .status-available {
+            background: #052e16;
+            color: #86efac;
+        }
+
+        .status-reserved {
+            background: #172554;
+            color: #93c5fd;
+        }
+
+        .status-used {
+            background: #312e81;
+            color: #c4b5fd;
+        }
+
+        .status-rejected,
+        .status-withdrawn {
+            background: #450a0a;
+            color: #fca5a5;
+        }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        /* Glass-morphism modal */
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(2, 6, 23, 0.78);
+            backdrop-filter: blur(9px);
+            -webkit-backdrop-filter: blur(9px);
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 850px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(15, 23, 42, 0.97);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 22px;
+        }
+
+        .modal-header h2 {
+            margin: 0 0 8px;
+        }
+
+        .modal-subtitle {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .close-btn {
+            border: none;
+            background: transparent;
+            color: #cbd5e1;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .detail-section {
+            padding: 20px 0;
+            border-top: 1px solid #263449;
+        }
+
+        .detail-section h3 {
+            margin: 0 0 16px;
+            font-size: 16px;
+            color: #93c5fd;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .detail-item {
+            min-width: 0;
+        }
+
+        .detail-label {
+            display: block;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .detail-value {
+            overflow-wrap: anywhere;
+            line-height: 1.5;
+        }
+
+        .report-link {
+            display: inline-block;
+            color: #93c5fd;
+            text-decoration: underline;
+            margin-top: 5px;
+        }
+
+        .consent-record {
+            padding: 12px;
+            background: #111c30;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+
+        .decision-note {
+            color: #94a3b8;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-top: 20px;
+            border-top: 1px solid #263449;
+        }
+
+        .approve-btn {
+            background: #15803d;
+            color: white;
+        }
+
+        .reject-btn {
+            background: #b91c1c;
+            color: white;
+        }
+
+        .disabled-btn {
+            background: #334155;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .alert-message {
+            padding: 13px 16px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            line-height: 1.5;
+        }
+
+        .alert-message.error {
+            display: block;
+            color: #fecaca;
+            background: #450a0a;
+            border: 1px solid #7f1d1d;
+        }
+
+        .alert-message.success {
+            display: block;
+            color: #bbf7d0;
+            background: #052e16;
+            border: 1px solid #166534;
+        }
+
+        @media (max-width: 600px) {
+            .organ-page {
+                padding: 16px;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal {
+                padding: 20px;
+            }
+
+            .modal-actions .btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<main class="organ-page">
+
+    <header class="page-header">
+        <h1>Organ Listing Requests</h1>
+
+        <p>
+            Review donor organ submissions, inspect medical testing
+            documents, and approve or reject listings assigned to your hospital.
+        </p>
+
+        <p>
+            Hospital:
+            <strong>
+                <%= hospital.hospital_name %>
+            </strong>
+            |
+            Hospital ID:
+            <strong>
+                <%= hospital.hospital_id %>
+            </strong>
+        </p>
+    </header>
+
+    <% if (typeof message !== "undefined" && message) { %>
+        <div class="alert-message success" role="status">
+            <%= message %>
+        </div>
+    <% } %>
+
+    <!-- Search and filters -->
+    <form class="filters" method="GET" action="/hospital/donor_organ-listings">
+
+        <input
+            type="text"
+            name="search"
+            placeholder="Search donor name or ID"
+            value="<%= typeof search !== 'undefined' ? search : '' %>"
+        >
+
+        <select name="status">
+            <option value="">All statuses</option>
+<!-- 
+            <option value="Pending Verification"
+                <%= status === "Pending Verification" ? "selected" : "" %>>
+                Pending Verification
+            </option> -->
+
+            <option value="Available"
+                <%= status === "Available" ? "selected" : "" %>>
+                Available
+            </option>
+
+            <option value="Reserved"
+                <%= status === "Reserved" ? "selected" : "" %>>
+                Reserved
+            </option>
+
+            <option value="Used"
+                <%= status === "Used" ? "selected" : "" %>>
+                Used
+            </option>
+
+            <option value="Withdrawn"
+                <%= status === "Withdrawn" ? "selected" : "" %>>
+                Withdrawn
+            </option>
+
+            <option value="Rejected"
+                <%= status === "Rejected" ? "selected" : "" %>>
+                Rejected
+            </option>
+        </select>
+
+        <select name="organ">
+            <option value="">All organs</option>
+
+            <option value="Heart"
+                <%= organ === "Heart" ? "selected" : "" %>>
+                Heart
+            </option>
+
+            <option value="Lung"
+                <%= organ === "Lung" ? "selected" : "" %>>
+                Lung
+            </option>
+
+            <option value="Kidney"
+                <%= organ === "Kidney" ? "selected" : "" %>>
+                Kidney
+            </option>
+
+            <option value="Liver"
+                <%= organ === "Liver" ? "selected" : "" %>>
+                Liver
+            </option>
+
+            <option value="Cornea"
+                <%= organ === "Cornea" ? "selected" : "" %>>
+                Cornea
+            </option>
+        </select>
+
+        <button type="submit" class="filter-btn">
+            Apply Filters
+        </button>
+
+        <a href="/hospital/donor_organ-listings" class="btn reset-btn">
+            Reset
+        </a>
+
+    </form>
+
+
+    <!-- Organ listings table -->
+    <div class="table-wrapper">
+
+        <table class="request-table">
+
+            <thead>
+                <tr>
+                    <th>Listing ID</th>
+                    <th>Donor</th>
+                    <th>Organ</th>
+                    <th>Testing Hospital</th>
+                    <th>Test Date</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <% if (organRequests && organRequests.length > 0) { %>
+
+                    <% organRequests.forEach(request => { %>
+
+                        <tr
+                            class="request-row"
+                            tabindex="0"
+                            role="button"
+                            aria-label="View organ listing <%= request.organ_id %>"
+                            data-request='<%- JSON.stringify({
+                                id: request.do_id,
+                                donorId: request.donor_id,
+                                donorName: request.donor_name,
+                                userId: request.user_id,
+                                bloodGroup: request.bloodgroup,
+                                organName: request.organ_name,
+                                testingHospital: request.hospital_name,
+                                testingHospitalId: request.verified_hospital_id,
+                                testDate: request.verified_at,
+                                registeredAt: request.registered_at,
+                                status: request.availability_status,
+                                consentGiven: request.donor_consent,
+                                consentDate: request.consent_provided_at
+                            }).replace(/</g, "\\u003c") %>'
+                        >
+
+                            <td>
+                                <strong>
+                                    <%= request.do_id %>
+                                </strong>
+                            </td>
+
+                            <td>
+                                <%= request.donor_name %>
+                                <br>
+                                <small>User ID: <%= request.user_id %></small>
+                            </td>
+
+                            <td>
+                                <%= request.organ_name %>
+                            </td>
+
+                            <td>
+                                <%= request.hospital_name %>
+                            </td>
+
+                            <td>
+                                <%= request.verified_at
+                                    ? new Date(request.test_date).toLocaleDateString("en-IN")
+                                    : "Not provided" %>
+                            </td>
+
+                            <td>
+                                <%= request.registered_at
+                                    ? new Date(request.registered_at).toLocaleDateString("en-IN")
+                                    : "Not provided" %>
+                            </td>
+
+                            <td>
+                                <span class="status
+                                    <%= request.status === 'Pending Verification'
+                                        ? 'status-pending'
+                                        : request.status === 'Available'
+                                            ? 'status-available'
+                                            : request.status === 'Reserved'
+                                                ? 'status-reserved'
+                                                : request.status === 'Used'
+                                                    ? 'status-used'
+                                                    : 'status-rejected' %>">
+                                    <%= request.status %>
+                                </span>
+                            </td>
+
+                            <td>
+                                <button
+                                    type="button"
+                                    class="btn view-btn open-modal-btn"
+                                >
+                                    View
+                                </button>
+                            </td>
+
+                        </tr>
+
+                    <% }) %>
+
+                <% } else { %>
+
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            No organ listings match your filters.
+                        </td>
+                    </tr>
+
+                <% } %>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</main>
+
+
+<!-- Modal -->
+<div
+    class="modal-overlay"
+    id="organModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalTitle"
+>
+
+    <div class="modal">
+
+        <div class="modal-header">
+
+            <div>
+                <h2 id="modalTitle">Organ Listing Details</h2>
+                <div class="modal-subtitle" id="modalListingId"></div>
+            </div>
+
+            <button
+                type="button"
+                class="close-btn"
+                id="closeModal"
+                aria-label="Close modal"
+            >
+                &times;
+            </button>
+
+        </div>
+
+        <div id="modalMessage" class="alert-message" role="alert"></div>
+
+        <!-- A. Donor information -->
+        <section class="detail-section">
+
+            <h3>A. Donor Information</h3>
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+                    <span class="detail-label">Donor Name</span>
+                    <div class="detail-value" id="modalDonorName">—</div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">User ID</span>
+                    <div class="detail-value" id="modalUserId">—</div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Donor Profile ID</span>
+                    <div class="detail-value" id="modalDonorId">—</div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Blood Group</span>
+                    <div class="detail-value" id="modalBloodGroup">—</div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- B. Organ details -->
+        <section class="detail-section">
+
+            <h3>B. Organ Listing Information</h3>
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+                    <span class="detail-label">Organ Type</span>
+                    <div class="detail-value" id="modalOrganName">—</div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Current Status</span>
+                    <div class="detail-value" id="modalStatus">—</div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Testing Hospital</span>
+                    <div class="detail-value" id="modalTestingHospital">—</div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Testing Hospital ID</span>
+                    <div class="detail-value" id="modalTestingHospitalId">—</div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Test Date</span>
+                    <div class="detail-value" id="modalTestDate">—</div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Submitted Date</span>
+                    <div class="detail-value" id="modalRegisteredAt">—</div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- C. Medical report -->
+        <section class="detail-section">
+
+            <h3>C. Medical Testing Document</h3>
+
+            <p class="decision-note">
+                Open the report through the authenticated hospital report route.
+                Access must be checked by the backend.
+            </p>
+
+            <a
+                href="#"
+                id="viewReportLink"
+                class="report-link"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                View Medical Report
+            </a>
+
+            <span id="reportUnavailable" hidden>
+                No report link is available.
+            </span>
+
+        </section>
+
+
+        <!-- D. Consent -->
+        <section class="detail-section">
+
+            <h3>D. Donor Consent</h3>
+
+            <div class="consent-record">
+                <div>
+                    <strong>Consent recorded:</strong>
+                    <span id="modalConsent">—</span>
+                </div>
+
+                <div>
+                    <strong>Consent date:</strong>
+                    <span id="modalConsentDate">—</span>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- E. Review decision -->
+        <section class="detail-section">
+
+            <h3>E. Review Decision</h3>
+
+            <p class="decision-note">
+                Approve only after completing the required document and
+                verification checks. Rejection requires a reason.
+                Approval does not itself authorize a transplant.
+            </p>
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="btn approve-btn"
+                    id="approveBtn"
+                >
+                    Approve Listing
+                </button>
+
+                <button
+                    type="button"
+                    class="btn reject-btn"
+                    id="rejectBtn"
+                >
+                    Reject Listing
+                </button>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+<br><br>
+<a href="/hospital/organ-requests">Back to dashboard</a>
+<script>
+    const modal = document.getElementById("organModal");
+    const closeModalButton = document.getElementById("closeModal");
+
+    const approveBtn = document.getElementById("approveBtn");
+    const rejectBtn = document.getElementById("rejectBtn");
+
+    const modalMessage = document.getElementById("modalMessage");
+    const reportLink = document.getElementById("viewReportLink");
+    const reportUnavailable = document.getElementById("reportUnavailable");
+
+    let selectedRequest = null;
+    let actionInProgress = false;
+
+
+    function formatDate(value) {
+        if (!value) return "Not provided";
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return "Not provided";
+        }
+
+        return date.toLocaleDateString("en-IN");
+    }
+
+
+    function setText(id, value) {
+        document.getElementById(id).textContent =
+            value === null || value === undefined || value === ""
+                ? "Not provided"
+                : value;
+    }
+
+
+    function showMessage(message, type) {
+        modalMessage.textContent = message;
+        modalMessage.className = "alert-message " + type;
+    }
+
+
+    function clearMessage() {
+        modalMessage.textContent = "";
+        modalMessage.className = "alert-message";
+    }
+
+
+    function updateActionButtons(status) {
+        const canReview = status === "Pending Verification";
+
+        approveBtn.disabled = !canReview;
+        rejectBtn.disabled = !canReview;
+
+        approveBtn.classList.toggle("disabled-btn", !canReview);
+        rejectBtn.classList.toggle("disabled-btn", !canReview);
+
+        approveBtn.textContent = canReview
+            ? "Approve Listing"
+            : "Approval Unavailable";
+
+        rejectBtn.textContent = canReview
+            ? "Reject Listing"
+            : "Rejection Unavailable";
+    }
+
+
+    function openModal(request) {
+        selectedRequest = request;
+        actionInProgress = false;
+        clearMessage();
+
+        setText("modalListingId", "Listing ID: " + request.id);
+        setText("modalDonorName", request.donorName);
+        setText("modalUserId", request.userId);
+        setText("modalDonorId", request.donorId);
+        setText("modalBloodGroup", request.bloodGroup);
+        setText("modalOrganName", request.organName);
+        setText("modalStatus", request.status);
+        setText("modalTestingHospital", request.testingHospital);
+        setText("modalTestingHospitalId", request.testingHospitalId);
+        setText("modalTestDate", formatDate(request.testDate));
+        setText("modalRegisteredAt", formatDate(request.registeredAt));
+
+        setText(
+            "modalConsent",
+            request.consentGiven === true ? "Yes" :
+            request.consentGiven === false ? "No" : "Not recorded"
+        );
+
+        setText("modalConsentDate", formatDate(request.consentDate));
+
+        // The listing ID is used, not a client-supplied file path.
+        // The backend must authenticate and authorize this report request.
+        reportLink.href =
+            "/hospital/organ-listings/" +
+            encodeURIComponent(request.id) +
+            "/report";
+
+        reportLink.hidden = false;
+        reportUnavailable.hidden = true;
+
+        updateActionButtons(request.status);
+
+        modal.classList.add("active");
+        document.body.style.overflow = "hidden";
+        closeModalButton.focus();
+    }
+
+
+    function closeModal() {
+        if (actionInProgress) return;
+
+        modal.classList.remove("active");
+        document.body.style.overflow = "";
+        selectedRequest = null;
+        clearMessage();
+    }
+
+
+    document.querySelectorAll(".request-row").forEach(row => {
+        const button = row.querySelector(".open-modal-btn");
+
+        function showDetails() {
+            try {
+                const request = JSON.parse(row.dataset.request);
+                openModal(request);
+            } catch (error) {
+                console.error("Unable to open listing details:", error);
+            }
+        }
+
+        button.addEventListener("click", function(event) {
+            event.stopPropagation();
+            showDetails();
+        });
+
+        row.addEventListener("click", showDetails);
+
+        row.addEventListener("keydown", function(event) {
+            if (
+                event.target === row &&
+                (event.key === "Enter" || event.key === " ")
+            ) {
+                event.preventDefault();
+                showDetails();
+            }
+        });
+    });
+
+
+    closeModalButton.addEventListener("click", closeModal);
+
+
+    modal.addEventListener("click", function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape" && modal.classList.contains("active")) {
+            closeModal();
+        }
+    });
+
+
+    async function submitDecision(action) {
+        if (!selectedRequest || actionInProgress) return;
+
+        if (selectedRequest.status !== "Pending Verification") {
+            showMessage(
+                "Only pending listings can be approved or rejected.",
+                "error"
+            );
+            return;
+        }
+
+        let rejectionReason = "";
+
+        if (action === "reject") {
+            rejectionReason = prompt(
+                "Enter the reason for rejecting this organ listing:"
+            );
+
+            if (rejectionReason === null) {
+                return;
+            }
+
+            rejectionReason = rejectionReason.trim();
+
+            if (!rejectionReason) {
+                showMessage(
+                    "A rejection reason is mandatory.",
+                    "error"
+                );
+                return;
+            }
+
+            if (rejectionReason.length > 1000) {
+                showMessage(
+                    "The rejection reason must be 1000 characters or fewer.",
+                    "error"
+                );
+                return;
+            }
+        }
+
+        const password = prompt(
+            "Enter your hospital account password to confirm this action:"
+        );
+
+        if (password === null) {
+            return;
+        }
+
+        if (!password.trim()) {
+            showMessage("Hospital password is required.", "error");
+            return;
+        }
+
+        const confirmed = confirm(
+            action === "approve"
+                ? "Approve this organ listing?"
+                : "Reject this organ listing?"
+        );
+
+        if (!confirmed) return;
+
+        actionInProgress = true;
+        approveBtn.disabled = true;
+        rejectBtn.disabled = true;
+
+        const originalApproveText = approveBtn.textContent;
+        const originalRejectText = rejectBtn.textContent;
+
+        approveBtn.textContent = "Processing...";
+        rejectBtn.textContent = "Processing...";
+
+        clearMessage();
+
+        try {
+            const response = await fetch(
+                "/hospital/organ-listings/action",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        organ_listing_id: selectedRequest.id,
+                        action: action,
+                        password: password,
+                        rejection_reason: rejectionReason
+                    })
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(
+                    result.message || "The action could not be completed."
+                );
+            }
+
+            showMessage(
+                result.message || "Organ listing updated successfully.",
+                "success"
+            );
+
+            // Refresh the list to show the database's latest status.
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
+
+        } catch (error) {
+            showMessage(
+                error.message || "A server error occurred. Please try again.",
+                "error"
+            );
+
+            actionInProgress = false;
+
+            approveBtn.textContent = originalApproveText;
+            rejectBtn.textContent = originalRejectText;
+
+            updateActionButtons(selectedRequest.status);
+        }
+    }
+
+
+    approveBtn.addEventListener("click", function() {
+        submitDecision("approve");
+    });
+
+
+    rejectBtn.addEventListener("click", function() {
+        submitDecision("reject");
+    });
+</script>
+
+</body>
+</html>
