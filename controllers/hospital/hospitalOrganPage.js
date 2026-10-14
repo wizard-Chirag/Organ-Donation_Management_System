@@ -1,5 +1,5 @@
 const db = require('../../config/db')
-
+const {comparePassword} = require('../../utils/passwords')
 const showOrganDashboard = (req,res)=>{
 
     try {
@@ -113,9 +113,138 @@ const showDonorOrganPage = async (req,res)=>{
     }
 }
 
+const DonorOrganAction = async (req,res) =>{
+    try {
+        
+        const hospital_id = req.hospital.hospital_id
 
+        const {
+            organ_listing_id,
+            action,
+            password,
+            rejection_reason
+        } = req.body;
+
+        if (!organ_listing_id || !action || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Listing ID, action and hospital password are required."
+            });
+        }
+
+        if (!["approve", "reject"].includes(action)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid action."
+            });
+        }
+
+        const reason = (rejection_reason || "").trim();
+
+        if (action === "reject" && !reason) {
+            return res.status(400).json({
+                success: false,
+                message: "A rejection reason is mandatory."
+            });
+        }
+
+        if (reason.length > 1000) {
+            return res.status(400).json({
+                success: false,
+                message: "The rejection reason must not exceed 1000 characters."
+            });
+        }
+
+        const hospitalResult = await db.query(
+            `SELECT * 
+             FROM hospital
+             WHERE hospital_id = $1`,
+            [hospital_id]
+        );
+
+        if (hospitalResult.rows.length === 0) {
+            return res.status(401).json({
+                success: false,
+                message: "Hospital account not found."
+            });
+        }
+
+        const passwordHash = hospitalResult.rows[0].hospital_password
+
+        const compare = comparePassword(password,passwordHash)
+
+        if(!compare){
+            return res.status(401).json({
+                success: false,
+                message: "Incorrect hospital password. No changes were made."
+            });
+        }
+
+        const client = await db.connect()
+        await client.query("BEGIN")
+
+        const listing = await client.query(
+            `select verification_status from donor_organ
+            where verified_hospital_id $1
+            AND do_id = $2`,
+            [hospital_id,organ_listing_id]
+        )
+
+        if(listing.rows.length==0 || listing.rows.verification_status != "Pending"){
+
+            await client.query("ROLLBACK");
+            return res.status(409).json({
+                success: false,
+                message: "Listing not found or already processed."
+            });
+        }
+
+        if(action == "approve"){
+            await client.query(
+                `update donor_organ set verification_status = $1
+                where verified_hospital_id $2
+                AND do_id = $3`,
+                ['Approved',hospital_id,organ_listing_id]
+            )
+        }
+        else{
+            await client.query(
+                `update donor_organ set verification_status = $1, rejection_reason = $2
+                where verified_hospital_id $3
+                AND do_id = $4`,
+                ['Rejected',reason,hospital_id,organ_listing_id]
+            )
+        }
+
+        await client.query("COMMIT");
+
+
+        return res.json({
+            success: true,
+            message: `Organ listing ${action}d successfully.`
+        });
+
+    } catch (error) {
+         if (client) {
+            await client.query("ROLLBACK").catch(() => {});
+        }
+
+        console.error("Organ listing action error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Something went wrong."
+        });
+
+    } finally {
+        // Return borrowed connection to the pool
+        if (client) client.release();
+    }
+    
+}
 
 module.exports = {
     showOrganDashboard,
-    showDonorOrganPage
+    showDonorOrganPage,
+    DonorOrganAction
 }
