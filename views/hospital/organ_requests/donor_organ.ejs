@@ -7,8 +7,6 @@
 
     <title>Organ Listing Requests | ODTMS</title>
 
-    <!-- <link rel="stylesheet" href="/css/hospitalRequests.css"> -->
-
     <style>
         * {
             box-sizing: border-box;
@@ -499,6 +497,7 @@
                                 testDate: request.verified_at,
                                 registeredAt: request.registered_at,
                                 status: request.availability_status,
+                                verificationStatus: request.verification_status,
                                 consentGiven: request.donor_consent,
                                 consentDate: request.consent_provided_at
                             }).replace(/</g, "\\u003c") %>'
@@ -736,7 +735,7 @@
 
 
         <!-- E. Review decision -->
-        <section class="detail-section">
+        <section class="detail-section" id="reviewSection">
 
             <h3>E. Review Decision</h3>
 
@@ -746,7 +745,37 @@
                 Approval does not itself authorize a transplant.
             </p>
 
-            <div class="modal-actions">
+            <!-- Rejection reason — shown only when Reject is clicked -->
+            <div id="rejectionReasonWrapper" style="display:none; margin: 14px 0 0;">
+                <label for="rejectionReasonInput" style="display:block; color:#94a3b8; font-size:13px; margin-bottom:6px;">
+                    Reason for rejection <span style="color:#fca5a5">*</span>
+                </label>
+                <textarea
+                    id="rejectionReasonInput"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="Describe why this listing is being rejected…"
+                    style="width:100%; padding:10px; background:#111c30; border:1px solid #334155;
+                           border-radius:8px; color:#e5e7eb; font-family:inherit; resize:vertical;"
+                ></textarea>
+                <small style="color:#94a3b8;">Max 1000 characters</small>
+            </div>
+
+            <!-- Hospital password confirmation -->
+            <div id="passwordWrapper" style="display:none; margin: 14px 0 0;">
+                <label for="hospitalPasswordInput" style="display:block; color:#94a3b8; font-size:13px; margin-bottom:6px;">
+                    Hospital account password <span style="color:#fca5a5">*</span>
+                </label>
+                <input
+                    type="password"
+                    id="hospitalPasswordInput"
+                    placeholder="Enter hospital password to confirm"
+                    style="width:100%; padding:10px; background:#111c30; border:1px solid #334155;
+                           border-radius:8px; color:#e5e7eb; font-family:inherit;"
+                >
+            </div>
+
+            <div class="modal-actions" style="margin-top:18px;">
 
                 <button
                     type="button"
@@ -762,6 +791,24 @@
                     id="rejectBtn"
                 >
                     Reject Listing
+                </button>
+
+                <button
+                    type="button"
+                    class="btn"
+                    id="confirmActionBtn"
+                    style="display:none; background:#0f766e; color:white;"
+                >
+                    Confirm
+                </button>
+
+                <button
+                    type="button"
+                    class="btn reset-btn"
+                    id="cancelActionBtn"
+                    style="display:none;"
+                >
+                    Cancel
                 </button>
 
             </div>
@@ -822,8 +869,9 @@
     }
 
 
-    function updateActionButtons(status) {
-        const canReview = status === "Pending Verification";
+    function updateActionButtons(verificationStatus) {
+        // verification_status column holds "Pending" for listings awaiting review
+        const canReview = verificationStatus === "Pending";
 
         approveBtn.disabled = !canReview;
         rejectBtn.disabled = !canReview;
@@ -841,10 +889,31 @@
     }
 
 
+    // References to the new inline form elements
+    const rejectionReasonWrapper = document.getElementById("rejectionReasonWrapper");
+    const rejectionReasonInput   = document.getElementById("rejectionReasonInput");
+    const passwordWrapper        = document.getElementById("passwordWrapper");
+    const hospitalPasswordInput  = document.getElementById("hospitalPasswordInput");
+    const confirmActionBtn       = document.getElementById("confirmActionBtn");
+    const cancelActionBtn        = document.getElementById("cancelActionBtn");
+
+    let pendingAction = null; // "approve" | "reject"
+
+    function resetDecisionForm() {
+        pendingAction = null;
+        rejectionReasonWrapper.style.display = "none";
+        passwordWrapper.style.display        = "none";
+        confirmActionBtn.style.display       = "none";
+        cancelActionBtn.style.display        = "none";
+        rejectionReasonInput.value           = "";
+        hospitalPasswordInput.value          = "";
+    }
+
     function openModal(request) {
         selectedRequest = request;
         actionInProgress = false;
         clearMessage();
+        resetDecisionForm();
 
         setText("modalListingId", "Listing ID: " + request.id);
         setText("modalDonorName", request.donorName);
@@ -852,7 +921,7 @@
         setText("modalDonorId", request.donorId);
         setText("modalBloodGroup", request.bloodGroup);
         setText("modalOrganName", request.organName);
-        setText("modalStatus", request.status);
+        setText("modalStatus", request.status + (request.verificationStatus ? " (Verification: " + request.verificationStatus + ")" : ""));
         setText("modalTestingHospital", request.testingHospital);
         setText("modalTestingHospitalId", request.testingHospitalId);
         setText("modalTestDate", formatDate(request.testDate));
@@ -876,7 +945,8 @@
         reportLink.hidden = false;
         reportUnavailable.hidden = true;
 
-        updateActionButtons(request.status);
+        // Gate buttons on verification_status ("Pending" = open for review)
+        updateActionButtons(request.verificationStatus);
 
         modal.classList.add("active");
         document.body.style.overflow = "hidden";
@@ -891,6 +961,7 @@
         document.body.style.overflow = "";
         selectedRequest = null;
         clearMessage();
+        resetDecisionForm();
     }
 
 
@@ -942,78 +1013,76 @@
     });
 
 
-    async function submitDecision(action) {
+    // --- Step 1: clicking Approve/Reject shows the inline form ---
+
+    function showDecisionForm(action) {
         if (!selectedRequest || actionInProgress) return;
 
-        if (selectedRequest.status !== "Pending Verification") {
-            showMessage(
-                "Only pending listings can be approved or rejected.",
-                "error"
-            );
+        if (selectedRequest.verificationStatus !== "Pending") {
+            showMessage("Only listings with Pending verification status can be reviewed.", "error");
             return;
         }
 
-        let rejectionReason = "";
+        pendingAction = action;
+        clearMessage();
 
-        if (action === "reject") {
-            rejectionReason = prompt(
-                "Enter the reason for rejecting this organ listing:"
-            );
+        // Show rejection reason textarea only for reject
+        rejectionReasonWrapper.style.display = action === "reject" ? "block" : "none";
+        rejectionReasonInput.value = "";
 
-            if (rejectionReason === null) {
-                return;
-            }
+        // Always show password field and confirm/cancel buttons
+        passwordWrapper.style.display  = "block";
+        confirmActionBtn.style.display = "inline-block";
+        cancelActionBtn.style.display  = "inline-block";
 
-            rejectionReason = rejectionReason.trim();
+        // Update confirm button label
+        confirmActionBtn.textContent = action === "approve" ? "Confirm Approval" : "Confirm Rejection";
+        confirmActionBtn.style.background = action === "approve" ? "#15803d" : "#b91c1c";
 
-            if (!rejectionReason) {
-                showMessage(
-                    "A rejection reason is mandatory.",
-                    "error"
-                );
-                return;
-            }
+        // Hide the primary approve/reject buttons while confirming
+        approveBtn.style.display = "none";
+        rejectBtn.style.display  = "none";
 
-            if (rejectionReason.length > 1000) {
-                showMessage(
-                    "The rejection reason must be 1000 characters or fewer.",
-                    "error"
-                );
-                return;
-            }
-        }
+        hospitalPasswordInput.focus();
+    }
 
-        const password = prompt(
-            "Enter your hospital account password to confirm this action:"
-        );
+    function cancelDecisionForm() {
+        resetDecisionForm();
+        approveBtn.style.display = "";
+        rejectBtn.style.display  = "";
+    }
 
-        if (password === null) {
-            return;
-        }
+    // --- Step 2: Confirm button submits the action ---
 
-        if (!password.trim()) {
+    async function submitDecision() {
+        if (!selectedRequest || actionInProgress || !pendingAction) return;
+
+        const action = pendingAction;
+        const password = hospitalPasswordInput.value.trim();
+        const rejectionReason = rejectionReasonInput.value.trim();
+
+        // Validate
+        if (!password) {
             showMessage("Hospital password is required.", "error");
+            hospitalPasswordInput.focus();
             return;
         }
 
-        const confirmed = confirm(
-            action === "approve"
-                ? "Approve this organ listing?"
-                : "Reject this organ listing?"
-        );
+        if (action === "reject" && !rejectionReason) {
+            showMessage("A rejection reason is mandatory.", "error");
+            rejectionReasonInput.focus();
+            return;
+        }
 
-        if (!confirmed) return;
+        if (rejectionReason.length > 1000) {
+            showMessage("The rejection reason must be 1000 characters or fewer.", "error");
+            return;
+        }
 
         actionInProgress = true;
-        approveBtn.disabled = true;
-        rejectBtn.disabled = true;
-
-        const originalApproveText = approveBtn.textContent;
-        const originalRejectText = rejectBtn.textContent;
-
-        approveBtn.textContent = "Processing...";
-        rejectBtn.textContent = "Processing...";
-
+        confirmActionBtn.disabled = true;
+        cancelActionBtn.disabled  = true;
+        confirmActionBtn.textContent = "Processing…";
         clearMessage();
 
         try {
@@ -1021,9 +1090,7 @@
                 "/hospital/organ-listings/action",
                 {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     credentials: "same-origin",
                     body: JSON.stringify({
                         organ_listing_id: selectedRequest.id,
@@ -1037,45 +1104,28 @@
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(
-                    result.message || "The action could not be completed."
-                );
+                throw new Error(result.message || "The action could not be completed.");
             }
 
-            showMessage(
-                result.message || "Organ listing updated successfully.",
-                "success"
-            );
+            showMessage(result.message || "Organ listing updated successfully.", "success");
 
-            // Refresh the list to show the database's latest status.
-            setTimeout(function() {
-                window.location.reload();
-            }, 1000);
+            setTimeout(function() { window.location.reload(); }, 1200);
 
         } catch (error) {
-            showMessage(
-                error.message || "A server error occurred. Please try again.",
-                "error"
-            );
+            showMessage(error.message || "A server error occurred. Please try again.", "error");
 
             actionInProgress = false;
-
-            approveBtn.textContent = originalApproveText;
-            rejectBtn.textContent = originalRejectText;
-
-            updateActionButtons(selectedRequest.status);
+            confirmActionBtn.disabled = false;
+            cancelActionBtn.disabled  = false;
+            confirmActionBtn.textContent = action === "approve" ? "Confirm Approval" : "Confirm Rejection";
         }
     }
 
 
-    approveBtn.addEventListener("click", function() {
-        submitDecision("approve");
-    });
-
-
-    rejectBtn.addEventListener("click", function() {
-        submitDecision("reject");
-    });
+    approveBtn.addEventListener("click", function() { showDecisionForm("approve"); });
+    rejectBtn.addEventListener("click",  function() { showDecisionForm("reject");  });
+    confirmActionBtn.addEventListener("click", submitDecision);
+    cancelActionBtn.addEventListener("click",  cancelDecisionForm);
 </script>
 
 </body>
