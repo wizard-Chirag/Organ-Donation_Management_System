@@ -1,5 +1,7 @@
 const db = require('../../config/db')
 const {comparePassword} = require('../../utils/passwords')
+const path = require('path')
+const fs = require('fs')
 const showOrganDashboard = (req,res)=>{
 
     try {
@@ -41,6 +43,7 @@ const showDonorOrganPage = async (req,res)=>{
                 d_o.availability_status,
                 d_o.registered_at,
                 h.hospital_name,
+                d_o.medical_document_path,
                 u.name AS donor_name,
                 u.user_id,
                 m.bloodgroup,
@@ -171,7 +174,7 @@ const DonorOrganAction = async (req,res) =>{
 
         const passwordHash = hospitalResult.rows[0].hospital_password
 
-        const compare = comparePassword(password,passwordHash)
+        const compare = await comparePassword(password,passwordHash)
 
         if(!compare){
             return res.status(401).json({
@@ -180,17 +183,18 @@ const DonorOrganAction = async (req,res) =>{
             });
         }
 
-        const client = await db.connect()
+        let client;
+        client = await db.connect()
         await client.query("BEGIN")
 
         const listing = await client.query(
             `select verification_status from donor_organ
-            where verified_hospital_id $1
+            where verified_hospital_id = $1
             AND do_id = $2`,
             [hospital_id,organ_listing_id]
         )
 
-        if(listing.rows.length==0 || listing.rows.verification_status != "Pending"){
+        if(listing.rows.length==0 || listing.rows[0].verification_status != "Pending"){
 
             await client.query("ROLLBACK");
             return res.status(409).json({
@@ -202,7 +206,7 @@ const DonorOrganAction = async (req,res) =>{
         if(action == "approve"){
             await client.query(
                 `update donor_organ set verification_status = $1
-                where verified_hospital_id $2
+                where verified_hospital_id = $2
                 AND do_id = $3`,
                 ['Approved',hospital_id,organ_listing_id]
             )
@@ -210,7 +214,7 @@ const DonorOrganAction = async (req,res) =>{
         else{
             await client.query(
                 `update donor_organ set verification_status = $1, rejection_reason = $2
-                where verified_hospital_id $3
+                where verified_hospital_id = $3
                 AND do_id = $4`,
                 ['Rejected',reason,hospital_id,organ_listing_id]
             )
@@ -243,8 +247,53 @@ const DonorOrganAction = async (req,res) =>{
     
 }
 
+const serveOrganReport = async (req, res) => {
+    try {
+        const hospital_id = req.hospital.hospital_id
+        const do_id = req.params.id
+
+        // Fetch the listing – must belong to this hospital
+        const result = await db.query(
+            `SELECT medical_document_path
+             FROM donor_organ
+             WHERE do_id = $1
+               AND verified_hospital_id = $2`,
+            [do_id, hospital_id]
+        )
+
+        if (result.rows.length === 0) {
+            return res.status(404).send('Report not found or access denied.')
+        }
+
+        const docPath = result.rows[0].medical_document_path
+
+        if (!docPath) {
+            return res.status(404).send('No medical document has been uploaded for this listing.')
+        }
+
+        // Build the absolute path. Paths are stored relative to project root
+        // e.g. "uploads/DonorDocs/filename.pdf"
+        const absolutePath = path.resolve(__dirname, '../../', docPath)
+
+        if (!fs.existsSync(absolutePath)) {
+            console.error('Medical document file missing on disk:', absolutePath)
+            return res.status(404).send('Medical document file not found on server.')
+        }
+
+        // Serve inline so the browser opens it (works for PDF, images, etc.)
+        res.sendFile(absolutePath, {
+            headers: { 'Content-Disposition': 'inline' }
+        })
+
+    } catch (error) {
+        console.error('Error serving medical report:', error)
+        return res.status(500).send('Internal Server Error')
+    }
+}
+
 module.exports = {
     showOrganDashboard,
     showDonorOrganPage,
-    DonorOrganAction
+    DonorOrganAction,
+    serveOrganReport
 }

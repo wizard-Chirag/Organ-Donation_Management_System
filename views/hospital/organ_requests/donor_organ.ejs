@@ -526,7 +526,7 @@
 
                             <td>
                                 <%= request.verified_at
-                                    ? new Date(request.test_date).toLocaleDateString("en-IN")
+                                    ? new Date(request.verified_at).toLocaleDateString("en-IN")
                                     : "Not provided" %>
                             </td>
 
@@ -538,16 +538,16 @@
 
                             <td>
                                 <span class="status
-                                    <%= request.status === 'Pending Verification'
+                                    <%= request.availability_status === 'Pending Verification'
                                         ? 'status-pending'
-                                        : request.status === 'Available'
+                                        : request.availability_status === 'Available'
                                             ? 'status-available'
-                                            : request.status === 'Reserved'
+                                            : request.availability_status === 'Reserved'
                                                 ? 'status-reserved'
-                                                : request.status === 'Used'
+                                                : request.availability_status === 'Used'
                                                     ? 'status-used'
                                                     : 'status-rejected' %>">
-                                    <%= request.status %>
+                                    <%= request.availability_status %>
                                 </span>
                             </td>
 
@@ -870,7 +870,7 @@
         // The backend must authenticate and authorize this report request.
         reportLink.href =
             "/hospital/organ-listings/" +
-            encodeURIComponent(request.do_id) +
+            encodeURIComponent(request.id) +
             "/report";
 
         reportLink.hidden = false;
