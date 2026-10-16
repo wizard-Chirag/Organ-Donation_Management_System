@@ -4,6 +4,10 @@ const cookieParser = require("cookie-parser");
 const app = exp()
 require('dotenv').config()
 
+// ── Background scheduler: organ request lifecycle (criticality / expiry) ────
+const { startOrganRequestScheduler } = require('./utils/organRequestScheduler')
+startOrganRequestScheduler()
+
 const port = process.env.PORT || 3000
 
 app.use(exp.urlencoded({extended:true}))

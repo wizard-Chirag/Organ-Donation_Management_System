@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipient Organ Requests | ODTMS</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0b1120;
+            color: #e5e7eb;
+        }
+
+        .organ-page {
+            max-width: 1500px;
+            margin: auto;
+            padding: 30px;
+        }
+
+        /* ── Header ─────────────────────────────────── */
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 30px; margin-bottom: 8px; }
+        .page-header p  { color: #94a3b8; line-height: 1.6; }
+
+        /* ── Filters ─────────────────────────────────── */
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+            align-items: center;
+        }
+        .filters input,
+        .filters select {
+            padding: 12px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background: #111c30;
+            color: #e5e7eb;
+            min-width: 180px;
+        }
+        .filters button, .btn {
+            padding: 11px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .filter-btn { background: #2563eb; color: white; }
+        .reset-btn  { background: #334155; color: white; }
+
+        /* ── Table ─────────────────────────────────── */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #263449;
+            border-radius: 14px;
+            background: rgba(15,23,42,0.8);
+        }
+        .request-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1100px;
+        }
+        .request-table th,
+        .request-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #263449;
+        }
+        .request-table th {
+            color: #94a3b8;
+            background: #111c30;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        .request-table tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .request-table tbody tr:hover { background: rgba(59,130,246,0.1); }
+        .request-table tbody tr:last-child td { border-bottom: none; }
+
+        .view-btn { background: #1d4ed8; color: white; }
+
+        /* ── Status badges ───────────────────────────── */
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .status-pending          { background: #422006; color: #fbbf24; }
+        .status-approved         { background: #052e16; color: #86efac; }
+        .status-rejected         { background: #450a0a; color: #fca5a5; }
+        .status-renewal          { background: #1e1b4b; color: #a5b4fc; }
+
+        /* ── Criticality score badge ─────────────────── */
+        .crit-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .crit-0     { background: #052e16; color: #86efac; }   /* safe   */
+        .crit-low   { background: #422006; color: #fbbf24; }   /* 1-day  */
+        .crit-high  { background: #450a0a; color: #fca5a5; }   /* 2-day  */
+        .crit-max   { background: #7f1d1d; color: #fee2e2; animation: pulse 1s infinite; } /* near expiry */
+
+        @keyframes pulse {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.6; }
+        }
+
+        /* ── Countdown chip ─────────────────────────── */
+        .countdown-chip {
+            font-size: 12px;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        .countdown-chip.warn  { color: #fbbf24; }
+        .countdown-chip.crit  { color: #fca5a5; font-weight: bold; }
+
+        /* ── Renewal cycles dots ─────────────────────── */
+        .cycle-dots { display: flex; gap: 4px; }
+        .cycle-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #334155;
+        }
+        .cycle-dot.used { background: #f59e0b; }
+        .cycle-dot.exhausted { background: #ef4444; }
+
+        .empty-state { padding: 40px; text-align: center; color: #94a3b8; }
+
+        /* ── Modal overlay ─────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(2,6,23,0.78);
+            backdrop-filter: blur(9px);
+            -webkit-backdrop-filter: blur(9px);
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            width: 100%;
+            max-width: 860px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(15,23,42,0.97);
+            border: 1px solid rgba(148,163,184,0.25);
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 22px;
+        }
+        .modal-header h2 { margin: 0 0 8px; }
+        .modal-subtitle   { color: #94a3b8; font-size: 13px; }
+        .close-btn {
+            border: none;
+            background: transparent;
+            color: #cbd5e1;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .detail-section {
+            padding: 20px 0;
+            border-top: 1px solid #263449;
+        }
+        .detail-section h3 { margin: 0 0 16px; font-size: 16px; color: #93c5fd; }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap: 18px;
+        }
+        .detail-item { min-width: 0; }
+        .detail-label {
+            display: block;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .detail-value { overflow-wrap: anywhere; line-height: 1.5; }
+
+        .consent-record {
+            padding: 12px;
+            background: #111c30;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        .decision-note { color: #94a3b8; font-size: 13px; line-height: 1.6; }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-top: 20px;
+            border-top: 1px solid #263449;
+        }
+        .approve-btn  { background: #15803d; color: white; }
+        .reject-btn   { background: #b91c1c; color: white; }
+        .disabled-btn { background: #334155; color: #94a3b8; cursor: not-allowed; }
+
+        .alert-message {
+            padding: 13px 16px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            line-height: 1.5;
+        }
+        .alert-message.error {
+            display: block;
+            color: #fecaca;
+            background: #450a0a;
+            border: 1px solid #7f1d1d;
+        }
+        .alert-message.success {
+            display: block;
+            color: #bbf7d0;
+            background: #052e16;
+            border: 1px solid #166534;
+        }
+
+        /* ── Renewal banner inside modal ─────────────── */
+        .renewal-banner {
+            padding: 14px 18px;
+            background: #1e1b4b;
+            border: 1px solid #4338ca;
+            border-radius: 10px;
+            color: #c7d2fe;
+            font-size: 14px;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            .organ-page { padding: 16px; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .modal { padding: 20px; }
+            .modal-actions .btn { flex: 1; text-align: center; }
+        }
+    </style>
+</head>
+
+<body>
+
+<main class="organ-page">
+
+    <header class="page-header">
+        <h1>Recipient Organ Requests</h1>
+        <p>
+            Review time-sensitive recipient organ requests. Requests are sorted by
+            <strong>criticality score</strong> — score increases +2 every 24 h of inaction
+            and the request expires after 3 days.
+        </p>
+        <p>
+            Hospital: <strong><%= hospital.hospital_name %></strong>
+            &nbsp;|&nbsp; Hospital ID: <strong><%= hospital.hospital_id %></strong>
+        </p>
+    </header>
+
+    <% if (typeof message !== "undefined" && message) { %>
+        <div class="alert-message success" role="status"><%= message %></div>
+    <% } %>
+
+    <!-- Filters -->
+    <form class="filters" method="GET" action="/hospital/organ-requests/list">
+
+        <input
+            type="text"
+            name="search"
+            placeholder="Search recipient name or ID"
+            value="<%= typeof search !== 'undefined' ? search : '' %>"
+        >
+
+        <select name="organ">
+            <option value="">All organs</option>
+            <% organTypes.forEach(ot => { %>
+                <option value="<%= ot.organ_name %>"
+                    <%= organ === ot.organ_name ? 'selected' : '' %>>
+                    <%= ot.organ_name %>
+                </option>
+            <% }) %>
+        </select>
+
+        <select name="status">
+            <option value="">All statuses</option>
+            <option value="Pending"          <%= status === 'Pending'          ? 'selected' : '' %>>Pending</option>
+            <option value="Approved"         <%= status === 'Approved'         ? 'selected' : '' %>>Approved</option>
+            <option value="Renewal Required" <%= status === 'Renewal Required' ? 'selected' : '' %>>Renewal Required</option>
+            <option value="Rejected"         <%= status === 'Rejected'         ? 'selected' : '' %>>Rejected</option>
+        </select>
+
+        <button type="submit" class="filter-btn">Apply Filters</button>
+        <a href="/hospital/organ-requests/list" class="btn reset-btn">Reset</a>
+
+    </form>
+
+    <!-- Requests table -->
+    <div class="table-wrapper">
+        <table class="request-table">
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Recipient</th>
+                    <th>Organ</th>
+                    <th>Criticality</th>
+                    <th>Time Elapsed</th>
+                    <th>Cycles</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                <% if (requests && requests.length > 0) { %>
+                    <% requests.forEach(req => { %>
+
+                        <tr
+                            class="request-row"
+                            tabindex="0"
+                            role="button"
+                            aria-label="View organ request <%= req.or_id %>"
+                            data-request='<%- JSON.stringify({
+                                id:                  req.or_id,
+                                recipientId:         req.recipient_id,
+                                recipientName:       req.recipient_name,
+                                userId:              req.user_id,
+                                bloodGroup:          req.bloodgroup,
+                                dob:                 req.dob,
+                                gender:              req.gender,
+                                organName:           req.organ_name,
+                                verificationStatus:  req.verification_status,
+                                criticalityScore:    req.criticality_score,
+                                requestCount:        req.request_count,
+                                rejectionReason:     req.rejection_reason,
+                                registeredAt:        req.registered_at,
+                                updatedAt:           req.updated_at,
+                                hoursSinceRegistered: req.hours_since_registered
+                            }).replace(/</g, "\\u003c") %>'
+                        >
+
+                            <td><strong><%= req.or_id %></strong></td>
+
+                            <td>
+                                <%= req.recipient_name %>
+                                <br>
+                                <small>User ID: <%= req.user_id %></small>
+                            </td>
+
+                            <td><%= req.organ_name %></td>
+
+                            <td>
+                                <%
+                                    const score = req.criticality_score || 0;
+                                    let critClass = 'crit-0';
+                                    if (score >= 8) critClass = 'crit-max';
+                                    else if (score >= 4) critClass = 'crit-high';
+                                    else if (score >= 2) critClass = 'crit-low';
+                                %>
+                                <span class="crit-badge <%= critClass %>">
+                                    ⚡ <%= score %>
+                                </span>
+                            </td>
+
+                            <td>
+                                <span
+                                    class="countdown-chip"
+                                    data-registered="<%= req.registered_at %>"
+                                    data-status="<%= req.verification_status %>"
+                                >
+                                    —
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="cycle-dots">
+                                    <% for(let d=0; d<3; d++) { %>
+                                        <div class="cycle-dot
+                                            <%= req.verification_status==='Rejected' && req.request_count>d ? 'exhausted'
+                                                : req.request_count > d ? 'used' : '' %>
+                                        "></div>
+                                    <% } %>
+                                </div>
+                                <small style="color:#94a3b8; font-size:11px">
+                                    <%= req.request_count %>/3
+                                </small>
+                            </td>
+
+                            <td>
+                                <%
+                                    let badgeClass = 'status-pending';
+                                    if (req.verification_status === 'Approved')        badgeClass = 'status-approved';
+                                    else if (req.verification_status === 'Rejected')   badgeClass = 'status-rejected';
+                                    else if (req.verification_status === 'Renewal Required') badgeClass = 'status-renewal';
+                                %>
+                                <span class="status <%= badgeClass %>">
+                                    <%= req.verification_status %>
+                                </span>
+                            </td>
+
+                            <td>
+                                <button
+                                    type="button"
+                                    class="btn view-btn open-modal-btn"
+                                >
+                                    View
+                                </button>
+                            </td>
+
+                        </tr>
+
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="9" class="empty-state">
+                            No organ requests match your filters.
+                        </td>
+                    </tr>
+                <% } %>
+
+            </tbody>
+        </table>
+    </div>
+
+</main>
+
+
+<!-- ═══════════════════════════ MODAL ═══════════════════════════ -->
+<div
+    class="modal-overlay"
+    id="organReqModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalTitle"
+>
+    <div class="modal">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="modalTitle">Organ Request Details</h2>
+                <div class="modal-subtitle" id="modalRequestId"></div>
+            </div>
+            <button type="button" class="close-btn" id="closeModal" aria-label="Close modal">
+                &times;
+            </button>
+        </div>
+
+        <div id="modalMessage" class="alert-message" role="alert"></div>
+
+        <!-- Renewal Required banner (shown only when status = Renewal Required) -->
+        <div id="renewalBanner" class="renewal-banner" style="display:none">
+            ⏰ <strong>Renewal Required</strong> — This request expired without hospital action.
+            The recipient must renew it. It will then re-enter the queue as Pending.
+            Cycle count: <span id="modalCycleCount">—</span> / 3.
+            Once 3 cycles are exhausted the request is permanently rejected.
+        </div>
+
+        <!-- A. Recipient information -->
+        <section class="detail-section">
+            <h3>A. Recipient Information</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Recipient Name</span>
+                    <div class="detail-value" id="modalRecipientName">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">User ID</span>
+                    <div class="detail-value" id="modalUserId">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Recipient Profile ID</span>
+                    <div class="detail-value" id="modalRecipientId">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Blood Group</span>
+                    <div class="detail-value" id="modalBloodGroup">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Gender</span>
+                    <div class="detail-value" id="modalGender">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Date of Birth</span>
+                    <div class="detail-value" id="modalDob">—</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- B. Request details -->
+        <section class="detail-section">
+            <h3>B. Request Details</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Organ Type</span>
+                    <div class="detail-value" id="modalOrganName">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Urgency Level</span>
+                    <div class="detail-value" id="modalUrgency">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Current Status</span>
+                    <div class="detail-value" id="modalStatus">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Criticality Score</span>
+                    <div class="detail-value" id="modalCriticality">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Submitted On</span>
+                    <div class="detail-value" id="modalRegisteredAt">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Last Updated</span>
+                    <div class="detail-value" id="modalUpdatedAt">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Time Since Submission</span>
+                    <div class="detail-value" id="modalElapsed">—</div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Renewal Cycles Used</span>
+                    <div class="detail-value" id="modalCycles">—</div>
+                </div>
+            </div>
+        </section>
+
+
+
+        <!-- D. Rejection reason (shown if Rejected) -->
+        <section class="detail-section" id="rejectionSection" style="display:none">
+            <h3>D. Rejection Reason</h3>
+            <div class="consent-record" style="color:#fca5a5;" id="modalRejectionReason">—</div>
+        </section>
+
+        <!-- E. Review Decision (hospital action) -->
+        <section class="detail-section" id="reviewSection">
+            <h3>E. Review Decision</h3>
+            <p class="decision-note">
+                Approve only after reviewing the recipient's need and medical eligibility.
+                Rejection requires a written reason. Only <strong>Pending</strong> requests
+                can be actioned here.
+            </p>
+
+            <!-- Rejection reason — shown only when Reject is clicked -->
+            <div id="rejectionReasonWrapper" style="display:none; margin:14px 0 0">
+                <label for="rejectionReasonInput" style="display:block;color:#94a3b8;font-size:13px;margin-bottom:6px">
+                    Reason for rejection <span style="color:#fca5a5">*</span>
+                </label>
+                <textarea
+                    id="rejectionReasonInput"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="Describe why this request is being rejected…"
+                    style="width:100%;padding:10px;background:#111c30;border:1px solid #334155;
+                           border-radius:8px;color:#e5e7eb;font-family:inherit;resize:vertical"
+                ></textarea>
+                <small style="color:#94a3b8">Max 1000 characters</small>
+            </div>
+
+            <!-- Hospital password confirmation -->
+            <div id="passwordWrapper" style="display:none; margin:14px 0 0">
+                <label for="hospitalPasswordInput" style="display:block;color:#94a3b8;font-size:13px;margin-bottom:6px">
+                    Hospital account password <span style="color:#fca5a5">*</span>
+                </label>
+                <input
+                    type="password"
+                    id="hospitalPasswordInput"
+                    placeholder="Enter hospital password to confirm"
+                    style="width:100%;padding:10px;background:#111c30;border:1px solid #334155;
+                           border-radius:8px;color:#e5e7eb;font-family:inherit"
+                >
+            </div>
+
+            <div class="modal-actions" style="margin-top:18px">
+                <button type="button" class="btn approve-btn" id="approveBtn">Approve Request</button>
+                <button type="button" class="btn reject-btn"  id="rejectBtn" >Reject Request</button>
+
+                <button type="button" class="btn" id="confirmActionBtn"
+                    style="display:none;background:#0f766e;color:white">
+                    Confirm
+                </button>
+                <button type="button" class="btn reset-btn" id="cancelActionBtn"
+                    style="display:none">
+                    Cancel
+                </button>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<br><br>
+<a href="/hospital/organ-requests" style="color:#93c5fd">← Back to Organ Services Dashboard</a>
+
+<script>
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    const modal           = document.getElementById('organReqModal');
+    const closeModalBtn   = document.getElementById('closeModal');
+    const approveBtn      = document.getElementById('approveBtn');
+    const rejectBtn       = document.getElementById('rejectBtn');
+    const confirmBtn      = document.getElementById('confirmActionBtn');
+    const cancelBtn       = document.getElementById('cancelActionBtn');
+    const modalMessage    = document.getElementById('modalMessage');
+    const rejWrapper      = document.getElementById('rejectionReasonWrapper');
+    const rejInput        = document.getElementById('rejectionReasonInput');
+    const pwdWrapper      = document.getElementById('passwordWrapper');
+    const pwdInput        = document.getElementById('hospitalPasswordInput');
+    const renewalBanner   = document.getElementById('renewalBanner');
+
+    let selectedRequest  = null;
+    let actionInProgress = false;
+    let pendingAction    = null;
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function fmt(value) {
+        if (!value) return 'Not provided';
+        return value;
+    }
+
+    function fmtDate(value) {
+        if (!value) return 'Not provided';
+        const d = new Date(value);
+        return isNaN(d) ? 'Not provided' : d.toLocaleString('en-IN');
+    }
+
+    function fmtElapsed(hours) {
+        if (hours === null || hours === undefined) return '—';
+        const h = parseFloat(hours);
+        if (h < 1)   return `${Math.round(h * 60)} min ago`;
+        if (h < 24)  return `${Math.floor(h)} hr ago`;
+        return `${Math.floor(h / 24)} day(s) ${Math.floor(h % 24)} hr ago`;
+    }
+
+    function setText(id, value) {
+        document.getElementById(id).textContent =
+            (value === null || value === undefined || value === '') ? 'Not provided' : value;
+    }
+
+    function showMessage(msg, type) {
+        modalMessage.textContent = msg;
+        modalMessage.className   = 'alert-message ' + type;
+    }
+
+    function clearMessage() {
+        modalMessage.textContent = '';
+        modalMessage.className   = 'alert-message';
+    }
+
+    // ── Countdown chips (live updating) ─────────────────────────────────────
+    function updateCountdowns() {
+        document.querySelectorAll('.countdown-chip').forEach(chip => {
+            const registered = chip.dataset.registered;
+            const status     = chip.dataset.status;
+            if (!registered) return;
+
+            const ageMs = Date.now() - new Date(registered).getTime();
+            const ageH  = ageMs / 3600000;
+
+            // Only live countdown for Pending
+            if (status !== 'Pending') {
+                chip.textContent = fmtElapsed(ageH);
+                chip.className   = 'countdown-chip';
+                return;
+            }
+
+            // Time remaining before 3-day expiry
+            const remainH = 72 - ageH;
+            if (remainH <= 0) {
+                chip.textContent = 'Expiring…';
+                chip.className   = 'countdown-chip crit';
+                return;
+            }
+
+            const remD = Math.floor(remainH / 24);
+            const remH = Math.floor(remainH % 24);
+            const remM = Math.floor((remainH * 60) % 60);
+
+            let label = '';
+            if (remD > 0) label = `${remD}d ${remH}h left`;
+            else if (remH > 0) label = `${remH}h ${remM}m left`;
+            else label = `${remM}m left`;
+
+            chip.textContent = label;
+            chip.className   = remainH < 12
+                ? 'countdown-chip crit'
+                : remainH < 24
+                    ? 'countdown-chip warn'
+                    : 'countdown-chip';
+        });
+    }
+
+    updateCountdowns();
+    setInterval(updateCountdowns, 30000); // refresh every 30 s
+
+    // ── Approve / Reject button enable logic ─────────────────────────────────
+    function updateActionButtons(verificationStatus) {
+        const canReview = verificationStatus === 'Pending';
+
+        approveBtn.disabled = !canReview;
+        rejectBtn.disabled  = !canReview;
+        approveBtn.classList.toggle('disabled-btn', !canReview);
+        rejectBtn.classList.toggle('disabled-btn',  !canReview);
+
+        approveBtn.textContent = canReview ? 'Approve Request'     : 'Approval Unavailable';
+        rejectBtn.textContent  = canReview ? 'Reject Request'      : 'Rejection Unavailable';
+    }
+
+    // ── Reset the inline decision form ───────────────────────────────────────
+    function resetDecisionForm() {
+        pendingAction              = null;
+        rejWrapper.style.display   = 'none';
+        pwdWrapper.style.display   = 'none';
+        confirmBtn.style.display   = 'none';
+        cancelBtn.style.display    = 'none';
+        rejInput.value             = '';
+        pwdInput.value             = '';
+    }
+
+    // ── Open modal ───────────────────────────────────────────────────────────
+    function openModal(request) {
+        selectedRequest  = request;
+        actionInProgress = false;
+        clearMessage();
+        resetDecisionForm();
+
+        // Renewal banner
+        if (request.verificationStatus === 'Renewal Required') {
+            renewalBanner.style.display = 'block';
+            document.getElementById('modalCycleCount').textContent = request.requestCount;
+        } else {
+            renewalBanner.style.display = 'none';
+        }
+
+        // Rejection section
+        const rejSection = document.getElementById('rejectionSection');
+        if (request.verificationStatus === 'Rejected' && request.rejectionReason) {
+            rejSection.style.display = '';
+            document.getElementById('modalRejectionReason').textContent = request.rejectionReason;
+        } else {
+            rejSection.style.display = 'none';
+        }
+
+
+        setText('modalRequestId',    'Request ID: ' + request.id);
+        setText('modalRecipientName', request.recipientName);
+        setText('modalUserId',        request.userId);
+        setText('modalRecipientId',   request.recipientId);
+        setText('modalBloodGroup',    request.bloodGroup);
+        setText('modalGender',        request.gender);
+        setText('modalDob',           request.dob ? new Date(request.dob).toLocaleDateString('en-IN') : null);
+        setText('modalOrganName',     request.organName);
+        setText('modalStatus',        request.verificationStatus);
+        setText('modalCriticality',   '⚡ ' + (request.criticalityScore || 0) + ' pts');
+        setText('modalRegisteredAt',  fmtDate(request.registeredAt));
+        setText('modalUpdatedAt',     fmtDate(request.updatedAt));
+        setText('modalElapsed',       fmtElapsed(request.hoursSinceRegistered));
+        setText('modalCycles',        (request.requestCount || 0) + ' of 3');
+
+        updateActionButtons(request.verificationStatus);
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        closeModalBtn.focus();
+    }
+
+    // ── Close modal ──────────────────────────────────────────────────────────
+    function closeModal() {
+        if (actionInProgress) return;
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        selectedRequest = null;
+        clearMessage();
+        resetDecisionForm();
+    }
+
+    // ── Row / button click handlers ───────────────────────────────────────────
+    document.querySelectorAll('.request-row').forEach(row => {
+        const btn = row.querySelector('.open-modal-btn');
+
+        function showDetails() {
+            try {
+                openModal(JSON.parse(row.dataset.request));
+            } catch (err) {
+                console.error('Unable to open request details:', err);
+            }
+        }
+
+        btn.addEventListener('click', e => { e.stopPropagation(); showDetails(); });
+        row.addEventListener('click', showDetails);
+        row.addEventListener('keydown', e => {
+            if (e.target === row && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                showDetails();
+            }
+        });
+    });
+
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+    });
+
+    // ── Step 1: clicking Approve/Reject reveals inline form ──────────────────
+    function showDecisionForm(action) {
+        if (!selectedRequest || actionInProgress) return;
+
+        if (selectedRequest.verificationStatus !== 'Pending') {
+            showMessage('Only Pending requests can be actioned.', 'error');
+            return;
+        }
+
+        pendingAction = action;
+        clearMessage();
+
+        rejWrapper.style.display = action === 'reject' ? 'block' : 'none';
+        rejInput.value = '';
+
+        pwdWrapper.style.display  = 'block';
+        confirmBtn.style.display  = 'inline-block';
+        cancelBtn.style.display   = 'inline-block';
+
+        confirmBtn.textContent        = action === 'approve' ? 'Confirm Approval' : 'Confirm Rejection';
+        confirmBtn.style.background   = action === 'approve' ? '#15803d' : '#b91c1c';
+
+        approveBtn.style.display = 'none';
+        rejectBtn.style.display  = 'none';
+
+        pwdInput.focus();
+    }
+
+    function cancelDecisionForm() {
+        resetDecisionForm();
+        approveBtn.style.display = '';
+        rejectBtn.style.display  = '';
+    }
+
+    // ── Step 2: Confirm submits the action ────────────────────────────────────
+    async function submitDecision() {
+        if (!selectedRequest || actionInProgress || !pendingAction) return;
+
+        const action          = pendingAction;
+        const password        = pwdInput.value.trim();
+        const rejectionReason = rejInput.value.trim();
+
+        if (!password) {
+            showMessage('Hospital password is required.', 'error');
+            pwdInput.focus();
+            return;
+        }
+
+        if (action === 'reject' && !rejectionReason) {
+            showMessage('A rejection reason is mandatory.', 'error');
+            rejInput.focus();
+            return;
+        }
+
+        if (rejectionReason.length > 1000) {
+            showMessage('Rejection reason must be 1000 characters or fewer.', 'error');
+            return;
+        }
+
+        actionInProgress      = true;
+        confirmBtn.disabled   = true;
+        cancelBtn.disabled    = true;
+        confirmBtn.textContent = 'Processing…';
+        clearMessage();
+
+        try {
+            const response = await fetch('/hospital/organ-requests/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    request_id:       selectedRequest.id,
+                    action:           action,
+                    password:         password,
+                    rejection_reason: rejectionReason
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'The action could not be completed.');
+            }
+
+            showMessage(result.message || 'Request updated successfully.', 'success');
+
+            setTimeout(() => window.location.reload(), 1200);
+
+        } catch (err) {
+            showMessage(err.message || 'A server error occurred. Please try again.', 'error');
+
+            actionInProgress    = false;
+            confirmBtn.disabled = false;
+            cancelBtn.disabled  = false;
+            confirmBtn.textContent = action === 'approve' ? 'Confirm Approval' : 'Confirm Rejection';
+        }
+    }
+
+    approveBtn.addEventListener('click', () => showDecisionForm('approve'));
+    rejectBtn.addEventListener('click',  () => showDecisionForm('reject'));
+    confirmBtn.addEventListener('click', submitDecision);
+    cancelBtn.addEventListener('click',  cancelDecisionForm);
+</script>
+
+</body>
+</html>

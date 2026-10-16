@@ -313,16 +313,14 @@ const showOrganRequestPage = async (req, res) => {
 
         let query = `
             SELECT
-                orq.request_id,
+                orq.or_id,
                 orq.recipient_id,
                 orq.organ_id,
-                orq.hospital_id,
-                orq.urgency_level,
+                orq.verified_hospital_id,
                 orq.verification_status,
                 orq.criticality_score,
                 orq.request_count,
                 orq.rejection_reason,
-                orq.notes,
                 orq.registered_at,
                 orq.updated_at,
                 ot.organ_name,

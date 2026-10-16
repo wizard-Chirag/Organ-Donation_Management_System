@@ -5,17 +5,32 @@ const {
     showOrganDashboard,
     showDonorOrganPage,
     DonorOrganAction,
-    serveOrganReport
+    serveOrganReport,
+    showOrganRequestPage,
+    OrganRequestAction,
+    renewOrganRequest
 } = require('../../controllers/hospital/hospitalOrganPage')
-const { verifyHospitalToken } = require('../../middleware/verifytoken')
 
-router.get('/hospital/organ-requests', verifyHospitalToken, showOrganDashboard)
+const { verifyHospitalToken, verifyUserToken } = require('../../middleware/verifytoken')
+
+// ── Donor organ listing routes ──────────────────────────────────────────────
+router.get('/hospital/organ-requests',       verifyHospitalToken, showOrganDashboard)
 router.get('/hospital/donor_organ-listings', verifyHospitalToken, showDonorOrganPage)
 
-// Action route (approve / reject) — matches the fetch() URL in donor_organ.ejs
-router.post('/hospital/organ-listings/action', verifyHospitalToken, DonorOrganAction)
+// approve / reject a donor organ listing
+router.post('/hospital/organ-listings/action',    verifyHospitalToken, DonorOrganAction)
 
-// Medical report route — opens the uploaded PDF/document inline in the browser
+// serve the uploaded medical PDF inline
 router.get('/hospital/organ-listings/:id/report', verifyHospitalToken, serveOrganReport)
 
-module.exports = router
+// ── Recipient organ REQUEST routes (organ_request table) ────────────────────
+// hospital views all recipient organ requests (sorted by criticality_score DESC)
+router.get('/hospital/organ-requests/list',    verifyHospitalToken, showOrganRequestPage)
+
+// hospital approves or rejects a recipient organ request
+router.post('/hospital/organ-requests/action', verifyHospitalToken, OrganRequestAction)
+
+// recipient renews an expired ("Renewal Required") organ request
+router.post('/recipient/organ-request/:id/renew', verifyUserToken, renewOrganRequest)
+
+module.exports = router
