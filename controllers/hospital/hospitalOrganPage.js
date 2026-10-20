@@ -340,7 +340,7 @@ const showOrganRequestPage = async (req, res) => {
                 ON m.user_id = u.user_id
             JOIN organ_type ot
                 ON ot.organ_id = orq.organ_id
-            WHERE orq.hospital_id = $1
+            WHERE orq.verified_hospital_id = $1
         `
 
         const values = [hospital_id]
@@ -369,6 +369,7 @@ const showOrganRequestPage = async (req, res) => {
         // Secondary: registered_at ASC (oldest first among same score)
         query += ` ORDER BY orq.criticality_score DESC, orq.registered_at ASC `
 
+        console.log(query)
         const result = await db.query(query, values)
 
         // Fetch available organ types for the filter dropdown
