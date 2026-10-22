@@ -195,6 +195,7 @@ const createRecipient = async (req, res) => {
         const result = await comparePassword(password, hashedPassword);
 
         if (!result) {
+            console.log("Invalid user password")
             return res.status(401).send('Enter valid password');
         }
 
