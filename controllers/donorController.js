@@ -2,6 +2,7 @@
 const db = require('../config/db');
 const { comparePassword, hashPassword } = require('../utils/passwords');
 const { ProfileToken } = require('../utils/generateToken');
+const { createNotification } = require('../utils/notificationService');
 
 const showProfileLogin = async (req, res) => {
     try {
@@ -66,6 +67,20 @@ const unLockProfile = async (req, res) => {
             }
             return res.render('donor/donorLogin', {
                 message: 'Invalid credentials / Profile not found'
+            });
+        }
+
+        if (donor.rows[0].verification_status === 'Rejected' || donor.rows[0].donor_status === 'Inactive') {
+            console.log('Donor profile has been rejected - Donor ID is invalid');
+            const rejectedMsg = 'Your donor profile has been rejected and your donor ID is now invalid.';
+            if (isJson) {
+                return res.json({
+                    success: false,
+                    message: rejectedMsg
+                });
+            }
+            return res.render('donor/donorLogin', {
+                message: rejectedMsg
             });
         }
 
@@ -224,13 +239,32 @@ const createDonorProfile = async (req, res) => {
         const newPassword = await hashPassword(profile_password);
         const normalizedDocPath = legal_document.path.replace(/\\/g, '/');
 
+        // Insert donor profile request
         await db.query(
             `insert into donor_profile
             (user_id, donor_status, registered_hospital_id, attested_document_path, verification_status, donor_password)
             values($1, $2, $3, $4, $5, $6)`,
             [user_id, 'Active', hospital_id, normalizedDocPath, 'Pending', newPassword]
         );
-        console.log("Donor profile request created");
+
+        // Access the donor_profile database and fetch the donor id assigned by the database for that user
+        const donorRecord = await db.query(
+            `select donor_id from donor_profile where user_id = $1`,
+            [user_id]
+        );
+
+        const assignedDonorId = donorRecord.rows[0]?.donor_id;
+        const hospitalTitle = hospitalName.rows[0]?.hospital_name || "the hospital";
+
+        // Send notification to the user with the assigned donor_request ID
+        await createNotification({
+            user_id: user_id,
+            title: "Donor Profile Sent for Approval",
+            message: `Your donor profile has been sent to ${hospitalTitle} for approval. Here is your donor_request ID: ${assignedDonorId}. This can be used for further donor profile login.`,
+            notification_type: "Profile"
+        });
+
+        console.log(`Donor profile request created for user ${user_id} with donor_id ${assignedDonorId}`);
 
         return res.redirect('/dashboard');
 

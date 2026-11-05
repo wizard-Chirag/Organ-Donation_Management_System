@@ -8,6 +8,10 @@ require('dotenv').config()
 const { startOrganRequestScheduler } = require('./utils/organRequestScheduler')
 startOrganRequestScheduler()
 
+// ── Initialize notifications table ────
+const { initNotificationTable } = require('./utils/notificationService')
+initNotificationTable()
+
 const port = process.env.PORT || 3000
 
 app.use(exp.urlencoded({extended:true}))
@@ -44,6 +48,9 @@ app.use('/', donorroutes)
 
 const recipientroutes = require('./routes/recipientRoutes')
 app.use('/', recipientroutes)
+
+const notificationRoutes = require('./routes/notificationRoutes')
+app.use('/', notificationRoutes)
 
 const hospitaltauthroute = require('./routes/hospital/authdashboard')
 app.use('/', hospitaltauthroute)

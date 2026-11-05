@@ -1,5 +1,6 @@
 const db = require('../../config/db')
 const {comparePassword} = require('../../utils/passwords')
+const { createNotification } = require('../../utils/notificationService')
 
 const showProfileReqestDash = (req,res)=>{
 
@@ -186,21 +187,45 @@ const requestAction = async (req,res) => {
             })
         }
 
-        if(action=='approve'){
-             await db.query(
-                `update donor_profile set
-                verification_status = $1
-                where donor_id = $2`,
-                ['Approved',request_id]
-            )
-        }
-        else{
+        const targetUserId = request.rows[0].user_id;
+        const assignedDonorId = request.rows[0].donor_id;
+
+        const hospitalResult = await db.query(
+            `select hospital_name from hospital where hospital_id = $1`,
+            [hospital]
+        );
+        const hospitalName = hospitalResult.rows[0]?.hospital_name || 'the hospital';
+
+        if (action == 'approve') {
             await db.query(
                 `update donor_profile set
-                verification_status = $1
+                verification_status = $1,
+                donor_status = 'Active'
                 where donor_id = $2`,
-                ['Rejected',request_id]
-            )
+                ['Approved', request_id]
+            );
+
+            await createNotification({
+                user_id: targetUserId,
+                title: 'Donor Profile Approved',
+                message: `Your donor profile request (Donor ID: ${assignedDonorId}) has been approved by ${hospitalName}. You can now log in to your donor profile.`,
+                notification_type: 'Profile'
+            });
+        } else {
+            await db.query(
+                `update donor_profile set
+                verification_status = $1,
+                donor_status = $2
+                where donor_id = $3`,
+                ['Rejected', 'Inactive', request_id]
+            );
+
+            await createNotification({
+                user_id: targetUserId,
+                title: 'Donor Profile Rejected',
+                message: `Your donor profile request (Donor ID: ${assignedDonorId}) has been rejected by ${hospitalName} and thus your donor ID is invalid from now.`,
+                notification_type: 'Profile'
+            });
         }
 
         return res.json({
