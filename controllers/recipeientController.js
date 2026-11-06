@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const { ProfileToken } = require('../utils/generateToken');
 const { comparePassword, hashPassword } = require('../utils/passwords');
+const { createNotification } = require('../utils/notificationService');
 
 const showProfileLogin = (req, res) => {
     console.log('Recipient login page loaded');
@@ -31,6 +32,20 @@ const unLockProfile = async (req, res) => {
             }
             return res.render('recipient/recipientLogin', {
                 message: 'Invalid credentials / Profile not found'
+            });
+        }
+
+        if (recipient.rows[0].verification_status === 'Rejected' || recipient.rows[0].recipient_status === 'Inactive') {
+            console.log('Recipient profile has been rejected - Recipient ID is invalid');
+            const rejectedMsg = 'Your recipient profile has been rejected and your recipient ID is now invalid.';
+            if (isJson) {
+                return res.json({
+                    success: false,
+                    message: rejectedMsg
+                });
+            }
+            return res.render('recipient/recipientLogin', {
+                message: rejectedMsg
             });
         }
 
@@ -202,13 +217,32 @@ const createRecipient = async (req, res) => {
         const newPassword = await hashPassword(profile_password);
         const normalizedDocPath = legal_document.path.replace(/\\/g, '/');
 
+        // Insert recipient profile request
         await db.query(
             `insert into recipient_profile
             (user_id, recipient_status, registered_hospital_id, attested_document_path, verification_status, recipient_password)
             values($1, $2, $3, $4, $5, $6)`,
             [user_id, 'Active', hospital_id, normalizedDocPath, 'Pending', newPassword]
         );
-        console.log("Recipient profile request created");
+
+        // Access the recipient_profile database and fetch the recipient id assigned by the database for that user
+        const recipientRecord = await db.query(
+            `select recipient_id from recipient_profile where user_id = $1`,
+            [user_id]
+        );
+
+        const assignedRecipientId = recipientRecord.rows[0]?.recipient_id;
+        const hospitalTitle = hospital.rows[0]?.hospital_name || "the hospital";
+
+        // Send notification to the user with the assigned recipient_request ID
+        await createNotification({
+            user_id: user_id,
+            title: "Recipient Profile Sent for Approval",
+            message: `Your recipient profile has been sent to ${hospitalTitle} for approval. Here is your recipient_request ID: ${assignedRecipientId}. This can be used for further recipient profile login.`,
+            notification_type: "Profile"
+        });
+
+        console.log(`Recipient profile request created for user ${user_id} with recipient_id ${assignedRecipientId}`);
 
         return res.redirect('/dashboard');
 

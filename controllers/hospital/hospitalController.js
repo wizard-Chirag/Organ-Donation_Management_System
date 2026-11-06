@@ -407,16 +407,41 @@ const RecipientRequestAction = async (req,res) => {
             )
         }
 
-        let newAction
-        if(action=='approve'){ newAction='Approved'}
-        else{ newAction = 'Rejected'}
+        const targetUserId = request.rows[0].user_id;
+        const assignedRecipientId = request.rows[0].recipient_id;
+        const hospitalName = hospital.rows[0]?.hospital_name || 'the hospital';
 
-        await db.query(
-            `update recipient_profile set
-            verification_status = $1
-            where recipient_id = $2`,
-            [newAction, request_id]
-        )
+        if (action === 'approve') {
+            await db.query(
+                `update recipient_profile set
+                verification_status = $1,
+                recipient_status = 'Active'
+                where recipient_id = $2`,
+                ['Approved', request_id]
+            );
+
+            await createNotification({
+                user_id: targetUserId,
+                title: 'Recipient Profile Approved',
+                message: `Your recipient profile request (Recipient ID: ${assignedRecipientId}) has been approved by ${hospitalName}. You can now log in to your recipient profile.`,
+                notification_type: 'Profile'
+            });
+        } else {
+            await db.query(
+                `update recipient_profile set
+                verification_status = $1,
+                recipient_status = $2
+                where recipient_id = $3`,
+                ['Rejected', 'Inactive', request_id]
+            );
+
+            await createNotification({
+                user_id: targetUserId,
+                title: 'Recipient Profile Rejected',
+                message: `Your recipient profile request (Recipient ID: ${assignedRecipientId}) has been rejected by ${hospitalName} and thus your recipient ID is invalid from now.`,
+                notification_type: 'Profile'
+            });
+        }
         
         return res.json(
                 {

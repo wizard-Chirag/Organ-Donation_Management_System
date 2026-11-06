@@ -19,6 +19,10 @@
             --badge-transplant: #059669;
             --badge-reminder: #d97706;
             --badge-info: #475569;
+            --donor-color: #0284c7;
+            --recipient-color: #0d9488;
+            --danger: #dc2626;
+            --success: #16a34a;
         }
 
         * {
@@ -45,7 +49,7 @@
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             border: 1px solid var(--border);
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -115,9 +119,55 @@
         }
 
         .btn-sm {
-            padding: 5px 11px;
+            padding: 5px 12px;
             font-size: 12px;
             border-radius: 6px;
+        }
+
+        .btn-action-donor {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+        .btn-action-donor:hover {
+            background: #bae6fd;
+            color: #0284c7;
+        }
+
+        .btn-action-recipient {
+            background: #ccfbf1;
+            color: #0f766e;
+            border: 1px solid #99f6e4;
+        }
+        .btn-action-recipient:hover {
+            background: #99f6e4;
+            color: #0d9488;
+        }
+
+        /* Filter Pills */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #fff;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
         }
 
         .notification-list {
@@ -147,6 +197,13 @@
             justify-content: space-between;
             margin-bottom: 8px;
             gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .badge-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .type-badge {
@@ -165,6 +222,46 @@
         .type-badge.type-Transplant { background: var(--badge-transplant); }
         .type-badge.type-Reminder { background: var(--badge-reminder); }
         .type-badge.type-Information { background: var(--badge-info); }
+
+        .module-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .module-badge.module-donor {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .module-badge.module-recipient {
+            background: #ccfbf1;
+            color: #0f766e;
+            border: 1px solid #99f6e4;
+        }
+
+        .status-pill {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .status-pill.status-rejected {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+
+        .status-pill.status-approved {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
 
         .notif-date {
             color: var(--text-muted);
@@ -186,10 +283,20 @@
         }
 
         .notif-bottom {
-            margin-top: 12px;
+            margin-top: 14px;
             display: flex;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(226, 232, 240, 0.7);
+        }
+
+        .notif-actions-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .empty-state {
@@ -219,7 +326,7 @@
                     <span class="badge-count"><%= unreadCount %> unread</span>
                 <% } %>
             </h1>
-            <p>Stay updated on your profile status, approvals, and organ matching updates.</p>
+            <p>Stay updated on your donor and recipient profile status, approvals, and matching alerts.</p>
         </div>
         <div class="actions">
             <% if (unreadCount > 0) { %>
@@ -231,8 +338,16 @@
         </div>
     </div>
 
+    <!-- Filter Pills -->
+    <div class="filter-bar">
+        <button class="filter-pill active" onclick="filterNotifications('all', this)">All</button>
+        <button class="filter-pill" onclick="filterNotifications('unread', this)">Unread</button>
+        <button class="filter-pill" onclick="filterNotifications('donor', this)">Donor Updates</button>
+        <button class="filter-pill" onclick="filterNotifications('recipient', this)">Recipient Updates</button>
+    </div>
+
     <% if (notifications && notifications.length > 0) { %>
-        <div class="notification-list">
+        <div class="notification-list" id="notificationList">
             <% notifications.forEach(function(item) { %>
                 <% 
                     const safeClass = 'type-' + item.notification_type.replace(/\s+/g, '-');
@@ -244,33 +359,87 @@
                         minute: '2-digit',
                         hour12: true
                     });
+
+                    const isDonor = item.title.toLowerCase().includes('donor') || item.message.toLowerCase().includes('donor');
+                    const isRecipient = item.title.toLowerCase().includes('recipient') || item.message.toLowerCase().includes('recipient');
+                    const isRejected = item.title.toLowerCase().includes('rejected') || item.message.toLowerCase().includes('invalid');
+                    const isApproved = item.title.toLowerCase().includes('approved');
+
+                    let categoryAttr = 'general';
+                    if (isDonor) categoryAttr = 'donor';
+                    else if (isRecipient) categoryAttr = 'recipient';
                 %>
-                <div class="notification-item <%= item.is_read ? 'read' : 'unread' %>">
+                <div class="notification-item <%= item.is_read ? 'read' : 'unread' %>" 
+                     data-category="<%= categoryAttr %>" 
+                     data-read="<%= item.is_read ? 'read' : 'unread' %>">
                     <div class="notif-top">
-                        <span class="type-badge <%= safeClass %>"><%= item.notification_type %></span>
+                        <div class="badge-group">
+                            <span class="type-badge <%= safeClass %>"><%= item.notification_type %></span>
+                            <% if (isDonor) { %>
+                                <span class="module-badge module-donor">Donor Profile</span>
+                            <% } else if (isRecipient) { %>
+                                <span class="module-badge module-recipient">Recipient Profile</span>
+                            <% } %>
+                            <% if (isRejected) { %>
+                                <span class="status-pill status-rejected">Invalidated</span>
+                            <% } else if (isApproved) { %>
+                                <span class="status-pill status-approved">Approved</span>
+                            <% } %>
+                        </div>
                         <span class="notif-date"><%= formattedDate %></span>
                     </div>
 
                     <div class="notif-title"><%= item.title %></div>
                     <div class="notif-message"><%= item.message %></div>
 
-                    <% if (!item.is_read) { %>
-                        <div class="notif-bottom">
-                            <form action="/notifications/<%= item.notification_id %>/read" method="POST">
+                    <div class="notif-bottom">
+                        <div class="notif-actions-left">
+                            <% if (isDonor && !isRejected) { %>
+                                <a href="/donor/login" class="btn btn-action-donor btn-sm">Donor Login &rarr;</a>
+                            <% } else if (isRecipient && !isRejected) { %>
+                                <a href="/recipient/login" class="btn btn-action-recipient btn-sm">Recipient Login &rarr;</a>
+                            <% } %>
+                        </div>
+
+                        <% if (!item.is_read) { %>
+                            <form action="/notifications/<%= item.notification_id %>/read" method="POST" style="margin: 0;">
                                 <button type="submit" class="btn btn-secondary btn-sm">Mark as Read</button>
                             </form>
-                        </div>
-                    <% } %>
+                        <% } %>
+                    </div>
                 </div>
             <% }); %>
         </div>
     <% } else { %>
         <div class="empty-state">
             <h3>No notifications yet</h3>
-            <p>You will receive notifications here regarding your profile requests and status updates.</p>
+            <p>You will receive notifications here regarding your donor and recipient profile requests, approval status, and matching updates.</p>
         </div>
     <% } %>
 </div>
+
+<script>
+    function filterNotifications(type, btn) {
+        document.querySelectorAll('.filter-pill').forEach(el => el.classList.remove('active'));
+        btn.classList.add('active');
+
+        const items = document.querySelectorAll('.notification-item');
+        items.forEach(item => {
+            const category = item.getAttribute('data-category');
+            const readStatus = item.getAttribute('data-read');
+
+            if (type === 'all') {
+                item.style.display = 'block';
+            } else if (type === 'unread') {
+                item.style.display = (readStatus === 'unread') ? 'block' : 'none';
+            } else if (type === 'donor') {
+                item.style.display = (category === 'donor') ? 'block' : 'none';
+            } else if (type === 'recipient') {
+                item.style.display = (category === 'recipient') ? 'block' : 'none';
+            }
+        });
+    }
+</script>
 
 </body>
 </html>

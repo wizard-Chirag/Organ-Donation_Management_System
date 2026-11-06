@@ -23,7 +23,8 @@ app.use(cookieParser())
 app.set('view engine','ejs')
 app.set('views',[
     (path.join(__dirname,'views')),
-    (path.join(__dirname,'views','hospital'))
+    (path.join(__dirname,'views','hospital')),
+    (path.join(__dirname,'views','notifications'))
 ])
 
 app.use("/uploads", exp.static(path.join(__dirname, "uploads")));
