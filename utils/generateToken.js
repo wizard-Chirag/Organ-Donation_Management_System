@@ -16,10 +16,11 @@ const GenerateToken = (user)=>{
     return token
 }
 
-const ProfileToken = (id)=>{
+const ProfileToken = (id,type)=>{
 
     let payload = {
-       profile_id: id
+       profile_id: id,
+       profile_type:type
     }
     const Profiletoken = jwt.sign(payload,profileKey,{
         expiresIn:'7m'

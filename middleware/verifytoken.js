@@ -28,13 +28,13 @@ const verifyUserToken = (req, res, next) => {
     }
 };
 
-const verifyProfileToken = (req, res, next) => {
+const verifyRprofileToken = (req, res, next) => {
     // Read JWT from cookie (supporting both profileToken and Profiletoken)
-    const token = req.cookies.profileToken || req.cookies.Profiletoken;
+    const token = req.cookies.RprofileToken 
 
     // No token found
     if (!token) {
-        console.log('no token generated/found:profile');
+        console.log('no token generated/found:Rprofile');
         return res.redirect("/dashboard");
     }
 
@@ -50,8 +50,35 @@ const verifyProfileToken = (req, res, next) => {
         next();
     } catch (err) {
         // Invalid or expired token
-        res.clearCookie("profileToken");
-        res.clearCookie("Profiletoken");
+        res.clearCookie("RprofileToken");
+        console.log(err);
+        return res.redirect("/dashboard");
+    }
+};
+
+const verifyDprofileToken = (req, res, next) => {
+    // Read JWT from cookie (supporting both profileToken and Profiletoken)
+    const token = req.cookies.DprofileToken 
+
+    // No token found
+    if (!token) {
+        console.log('no token generated/found:Dprofile');
+        return res.redirect("/dashboard");
+    }
+
+    try {
+        // Verify token
+        const decoded = jwt.verify(
+            token,
+            process.env.profileBHADRA
+        );
+
+        // Store profile details for later controllers
+        req.profile = decoded;
+        next();
+    } catch (err) {
+        // Invalid or expired token
+        res.clearCookie("DprofileToken");
         console.log(err);
         return res.redirect("/dashboard");
     }
@@ -87,6 +114,7 @@ const verifyHospitalToken = (req, res, next) => {
 
 module.exports = {
     verifyUserToken,
-    verifyProfileToken,
+    verifyDprofileToken,
+    verifyRprofileToken,
     verifyHospitalToken
-};
+};

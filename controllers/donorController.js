@@ -6,45 +6,42 @@ const { createNotification } = require('../utils/notificationService');
 const { createHospitalNotification } = require('../utils/hospitalNotificationService');
 
 const showProfileLogin = async (req, res) => {
+
     try {
         const user_id = req.user.user_id;
-        const profileCookie = req.cookies.profileToken || req.cookies.Profiletoken;
+        const profileCookie = req.cookies.Dprofiletoken;
 
         if (profileCookie) {
-            const donor = await db.query(
-                `select * from donor_profile where user_id = $1`,
-                [user_id]
-            );
 
             const user = await db.query(
                 `select * from users where user_id = $1`,
                 [user_id]
             );
 
-            if (donor.rows.length > 0 && user.rows.length > 0) {
-                const hospital = await db.query(
-                    `select * from hospital where hospital_id = $1`,
-                    [donor.rows[0].registered_hospital_id]
-                );
-                return res.render('donor/donorDashboard', {
-                    user: user.rows[0],
-                    donor: donor.rows[0],
-                    hospital: hospital.rows[0] || { hospital_name: 'Not assigned' }
-                });
-            }
+            const donor = await db.query(
+                `select * from donor_profile where user_id = $1`,
+                [user_id]
+            );
+
+            const hospital = await db.query(
+                `select * from hospital where hospital_id = $1`,
+                [donor.rows[0].registered_hospital_id]
+            );
+            return res.render('donor/donorDashboard', {
+                user: user.rows[0],
+                donor: donor.rows[0],
+                hospital: hospital.rows[0] || { hospital_name: 'Not assigned' }
+            });
         }
 
-        console.log('Donor login page loaded');
         return res.render('donor/donorLogin', {
             message: null
-        });
-    } catch (error) {
-        console.error("Error loading donor profile login:", error);
-        return res.render('donor/donorLogin', {
-            message: null
-        });
+        })
     }
-};
+    catch (error) {
+        console.error("Error loading donor login page:", error);
+    }
+}
 
 const unLockProfile = async (req, res) => {
     try {
@@ -86,6 +83,7 @@ const unLockProfile = async (req, res) => {
         }
 
         const id = donor.rows[0].donor_id;
+        const type = 'Donor'
         const hashedPassword = donor.rows[0].donor_password;
 
         const compare = await comparePassword(password, hashedPassword);
@@ -101,14 +99,8 @@ const unLockProfile = async (req, res) => {
             });
         }
 
-        let profileToken = ProfileToken(id);
-        // res.cookie('profileToken', profileToken, {
-        //     httpOnly: true,
-        //     secure: false,
-        //     sameSite: "lax",
-        //     maxAge: 7 * 60 * 1000
-        // });
-        res.cookie('Profiletoken', profileToken, {
+        let profileToken = ProfileToken(id, type);
+        res.cookie('DprofileToken', profileToken, {
             httpOnly: true,
             secure: false,
             sameSite: "lax",
@@ -116,14 +108,15 @@ const unLockProfile = async (req, res) => {
         });
 
         if (isJson) {
+            console.log('gnadu3')
             return res.json({
                 success: true,
                 message: 'Welcome to your Donor Profile',
-                redirectUrl: '/donor'
+                redirectUrl: '/donor/dashboard'
             });
         }
 
-        return res.redirect('/donor');
+        return res.redirect('/donor/dashboard');
 
     } catch (error) {
         console.error("Error unlocking donor profile:", error);
@@ -134,8 +127,79 @@ const unLockProfile = async (req, res) => {
     }
 };
 
-const showDonorProfile = async (req, res) => {
+// WHEN A USER ALREADY HOLDING A DONOR PROFILE ASKS FOR CREATING 
+// A NEW DONOR PROFILE INSPITE OF EXISTING ONE 
+const DonorCreationOnLogin = async (req, res) => {
+
     try {
+        const user_id = req.user.user_id;
+
+        const user = await db.query(
+            `select * from users where user_id = $1`,
+            [user_id]
+        );
+
+        const donor = await db.query(
+            `select * from donor_profile where user_id = $1`,
+            [user_id]
+        );
+        if (donor.rows.length > 0 && (donor.rows[0].verification_status === 'Pending' || donor.rows[0].verification_status === 'Approved')) {
+            return res.render('donor/donorLogin', {
+                message: `Donor Profile Already exists for user : ${user.rows[0].name}`
+            });
+        }
+
+        // IF DONOR PROFILE DOESNOT EXIST THEN GO FOR CREATION
+        return res.redirect('/donor/create')
+    } catch (error) {
+        console.error("Error loading donor on login page:", error);
+    }
+}
+
+// IF DONOR PROFILE GENUINLY DOESNOT EXIST THEN REDIRECT THE USER BACK TO HERE
+
+const showDonorCreation = async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+
+        const user = await db.query(
+            `select * from users where user_id = $1`,
+            [user_id]
+        );
+
+        const medical_record = await db.query(
+            `select * from user_medical_info where user_id = $1`,
+            [user_id]
+        );
+
+        const hospitals = await db.query(
+            `select hospital_id, hospital_name from hospital order by hospital_name ASC`
+        );
+
+        if (user.rows[0]) {
+            user.rows[0].blood_group = medical_record.rows[0].bloodgroup;
+        }
+        if (medical_record.rows[0].length == 0) {
+            console.log('medical profile absent bruh')
+            return res.redirect('/medical')
+        }
+
+        console.log("Create Donor Page opened");
+        return res.render('donor/createDonor', {
+            user: user.rows[0],
+            hospitals: hospitals.rows,
+            donor: true
+        });
+    }
+    catch (error) {
+        console.error("Error loading donor creation page:", error);
+    }
+}
+
+const showDonorDashboard = async (req, res) => {
+
+    try {
+
         const user_id = req.user.user_id;
 
         const user = await db.query(
@@ -149,51 +213,28 @@ const showDonorProfile = async (req, res) => {
         );
 
         if (donor.rows.length > 0) {
+            const profileCookie = req.cookies.DprofileToken;
+
             const donorHospital = await db.query(
                 `select hospital_name from hospital where hospital_id = $1`,
                 [donor.rows[0].registered_hospital_id]
             );
+            if (profileCookie) {
 
-            console.log("Showing donor profile");
-            return res.render('donor/donorDashboard', {
-                user: user.rows[0],
-                donor: donor.rows[0],
-                hospital: donorHospital.rows[0] || { hospital_name: 'Not assigned' }
-            });
-        }
-
-        // checking for existence of MEDICAL PROFILE OF THE USER
-        const medical_record = await db.query(
-            `select * from user_medical_info where user_id = $1`,
-            [user_id]
-        );
-
-        const hospitals = await db.query(
-            `select hospital_id, hospital_name from hospital order by hospital_name ASC`
-        );
-
-        // IF MEDICAL PROFILE PRESENT THEN GO TO CREATE DONOR_PROFILE
-        if (medical_record.rows.length > 0) {
-            if (user.rows[0]) {
-                user.rows[0].blood_group = medical_record.rows[0].bloodgroup;
+                console.log("Showing donor dashboard");
+                return res.render('donor/donorDashboard', {
+                    user: user.rows[0],
+                    donor: donor.rows[0],
+                    hospital: donorHospital.rows[0] || { hospital_name: 'Not assigned' }
+                });
             }
-            console.log("Create Donor Page opened");
-            return res.render('donor/createDonor', {
-                user: user.rows[0],
-                hospitals: hospitals.rows,
-                donor: true
-            });
+
+            return res.redirect('/donor')
         }
-
-        // IF NOT PRESENT THEN GO FILL THE MEDICAL PROFILE
-        console.log('User Medical page not present');
-        return res.redirect('/medical');
-
-    } catch (err) {
-        console.error("Error in showDonorProfile:", err);
-        res.status(500).send("Internal Server Error");
+    } catch (error) {
+        console.error("Error loading donor dashboard page:", error);
     }
-};
+}
 
 const createDonorProfile = async (req, res) => {
     const user_id = req.user.user_id;
@@ -485,10 +526,141 @@ const registerOrgan = async (req, res) => {
 module.exports = {
     showProfileLogin,
     unLockProfile,
+    DonorCreationOnLogin,
+    showDonorCreation,
+    showDonorDashboard,
     createDonorProfile,
-    showDonorProfile,
     showDonorUpdateProfile,
     updateDonorProfile,
     ShowregisterOrgan,
     registerOrgan
 };
+
+// FOR REFERENCE PURPOSES
+// const showDonorCreation = async (req, res) => {
+//     try {
+//         const user_id = req.user.user_id;
+
+//         const user = await db.query(
+//             `select * from users where user_id = $1`,
+//             [user_id]
+//         );
+
+//         const donor = await db.query(
+//             `select * from donor_profile where user_id = $1`,
+//             [user_id]
+//         );
+
+//         if (donor.rows.length > 0) {
+//             const profileCookie = req.cookies.profileToken || req.cookies.Profiletoken;
+
+//             const donorHospital = await db.query(
+//                 `select hospital_name from hospital where hospital_id = $1`,
+//                 [donor.rows[0].registered_hospital_id]
+//             );
+//             if (profileCookie && profileCookie.id === donor.rows[0].donor_id) {
+
+//                 console.log("Showing donor dashboard");
+//                 return res.render('donor/donorDashboard', {
+//                     user: user.rows[0],
+//                     donor: donor.rows[0],
+//                     hospital: donorHospital.rows[0] || { hospital_name: 'Not assigned' }
+//                 });
+//             }
+
+//             return res.redirect('/donor/login')
+//         }
+
+//         // checking for existence of MEDICAL PROFILE OF THE USER
+//         const medical_record = await db.query(
+//             `select * from user_medical_info where user_id = $1`,
+//             [user_id]
+//         );
+//         // const hospitals = await db.query(
+//         //     `select hospital_id, hospital_name from hospital order by hospital_name ASC`
+//         // );
+
+//         // IF MEDICAL PROFILE PRESENT THEN GO TO CREATE DONOR_PROFILE
+
+//         if (medical_record.rows.length > 0) {
+//             if (user.rows[0]) {
+//                 user.rows[0].blood_group = medical_record.rows[0].bloodgroup;
+//             }
+//             console.log("Donor profile Login page loaded");
+//             return res.render('donor/donorLogin', {
+//                 message: null
+//             });
+//             // console.log("Create Donor Page opened");
+//             // return res.render('donor/createDonor', {
+//             //     user: user.rows[0],
+//             //     hospitals: hospitals.rows,
+//             //     donor: true
+//             // });
+//         }
+
+//         // IF NOT PRESENT THEN GO FILL THE MEDICAL PROFILE
+//         console.log('User Medical page not present');
+//         return res.redirect('/medical');
+
+//     } catch (err) {
+//         console.error("Error in showDonorProfile:", err);
+//         res.status(500).send("Internal Server Error");
+//     }
+// };
+
+// const showProfileLogin = async (req, res) => {
+//     try {
+//         const user_id = req.user.user_id;
+//         const profileCookie = req.cookies.profileToken || req.cookies.Profiletoken;
+
+//         if (profileCookie) {
+//             const donor = await db.query(
+//                 `select * from donor_profile where user_id = $1`,
+//                 [user_id]
+//             );
+
+//             const user = await db.query(
+//                 `select * from users where user_id = $1`,
+//                 [user_id]
+//             );
+
+//            const medical_record = await db.query(
+//             `select * from user_medical_info where user_id = $1`,
+//             [user_id]
+//             );
+
+//             const hospital = await db.query(
+//                     `select * from hospital where hospital_id = $1`,
+//                     [donor.rows[0].registered_hospital_id]
+//                 );
+
+//             // MEDICAL REPORT PRESENT BUT PROFILE NOT PRESENT
+//             if(donor.rows.length == 0 && medical_record.rows.length>0)
+//             {
+//             console.log('Donor login page loaded');
+//             return res.render('donor/donorLogin', {
+//             message: null
+//             });
+//             }
+
+//             // BOTH PROFILE AND MEDICAL REPORT PRESENT
+//             if (donor.rows.length > 0 && user.rows.length > 0) {
+//                 return res.render('donor/donorDashboard', {
+//                     user: user.rows[0],
+//                     donor: donor.rows[0],
+//                     hospital: hospital.rows[0] || { hospital_name: 'Not assigned' }
+//                 });
+//             }
+//         }
+
+//         console.log('Donor login page loaded');
+//         return res.render('donor/donorLogin', {
+//             message: null
+//         });
+//     } catch (error) {
+//         console.error("Error loading donor profile login:", error);
+//         return res.render('donor/donorLogin', {
+//             message: null
+//         });
+//     }
+// };

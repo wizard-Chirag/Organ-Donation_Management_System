@@ -2,7 +2,7 @@
 const exp = require('express')
 const router = exp.Router()
 
-const { verifyUserToken, verifyProfileToken } = require('../middleware/verifytoken')
+const { verifyUserToken, verifyDprofileToken } = require('../middleware/verifytoken')
 
 // DONOR FOLDER TO STORE DONOR DOCUMENTS
 const uploadFolder = require("../middleware/uploads");
@@ -16,28 +16,41 @@ const {
     showProfileLogin,
     unLockProfile,
     ShowregisterOrgan,
-    registerOrgan
+    registerOrgan,
+    DonorCreationOnLogin,
+    showDonorCreation,
+    showDonorDashboard
 } = require('../controllers/donorController')
 
-// LOGIN PAGE
-router.get('/donor/login', verifyUserToken, showProfileLogin)
-router.post('/donor/login', verifyUserToken, unLockProfile)
+// // DONOR OFFICIAL PROFILE
+// router.get('/donor', verifyUserToken, showProfileLogin)
+
+// // LOGIN PAGE
+// router.get('/donor/login', verifyUserToken, showProfileLogin)
+// router.post('/donor/login', verifyUserToken, unLockProfile)
+// router.post('/donor/login/action', verifyUserToken, unLockProfile)
+
+// // CREATION OF PROFILE
+// router.get('/donorCreateOnLogin',verifyUserToken,DonorCreationOnLogin)
+// router.post("/donor", verifyUserToken, donoFolder.single("medical_report"), createDonorProfile)
+// ;
+
+router.get('/donor/login',verifyUserToken,showProfileLogin)
 router.post('/donor/login/action', verifyUserToken, unLockProfile)
 
-// DONOR OFFICIAL PROFILE
-router.get('/donor', verifyUserToken, showDonorProfile)
+router.get('/donorCreateOnLogin',verifyUserToken,DonorCreationOnLogin)
 
-// CREATION OF PROFILE
-router.post("/donor", verifyUserToken, donoFolder.single("medical_report"), createDonorProfile);
+router.get('/donor/create',verifyUserToken,showDonorCreation)
+router.post('/donor/create',verifyUserToken,createDonorProfile)
+
+router.get('/donor/dashboard',verifyUserToken,verifyDprofileToken,showDonorDashboard)
 
 // UPDATE THE PROFILE DETAILS
-router.get("/donor/update", verifyUserToken, showDonorUpdateProfile);
-router.post("/donor/update", verifyUserToken, donoFolder.single("medical_report"), updateDonorProfile);
+router.get("/donor/update", verifyUserToken, verifyDprofileToken, showDonorUpdateProfile);
+router.post("/donor/update", verifyUserToken, verifyDprofileToken, donoFolder.single("medical_report"), updateDonorProfile);
 
 // ORGAN LISTING PAGE
-router.get('/donor/register_organ', verifyUserToken, verifyProfileToken, ShowregisterOrgan)
-router.get('/donor/register-organ', verifyUserToken, verifyProfileToken, ShowregisterOrgan)
-router.post('/donor/register_organ', verifyUserToken, verifyProfileToken, donoFolder.single("medical_report"), registerOrgan)
-router.post('/donor/register-organ', verifyUserToken, verifyProfileToken, donoFolder.single("medical_report"), registerOrgan)
+router.get('/donor/register_organ', verifyUserToken, verifyDprofileToken, ShowregisterOrgan)
+router.post('/donor/register_organ', verifyUserToken, verifyDprofileToken, donoFolder.single("medical_report"), registerOrgan)
 
-module.exports = router
+module.exports = router
