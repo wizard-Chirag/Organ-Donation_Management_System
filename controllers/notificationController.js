@@ -14,7 +14,7 @@ const getNotificationsPage = async (req, res) => {
         const notifications = await getUserNotifications(userId, { limit: 100 });
         const unreadCount = await getUnreadNotificationCount(userId);
 
-        res.render('notifications', {
+        res.render('user_notifications', {
             notifications,
             unreadCount,
             user: req.user

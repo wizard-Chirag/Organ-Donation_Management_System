@@ -2,6 +2,7 @@ const db = require('../config/db');
 const { ProfileToken } = require('../utils/generateToken');
 const { comparePassword, hashPassword } = require('../utils/passwords');
 const { createNotification } = require('../utils/notificationService');
+const { createHospitalNotification } = require('../utils/hospitalNotificationService');
 
 const showProfileLogin = (req, res) => {
     console.log('Recipient login page loaded');
@@ -16,6 +17,11 @@ const unLockProfile = async (req, res) => {
         const { recipient_id, password } = req.body;
 
         const isJson = req.is('json') || req.headers.accept?.includes('application/json');
+
+        const user = await db.query(
+            `select * from recipient_profile where user_id = $1`,
+            [user_id]
+        );
 
         const recipient = await db.query(
             `select * from recipient_profile where recipient_id = $1 or user_id = $1`,
@@ -97,6 +103,29 @@ const unLockProfile = async (req, res) => {
         res.status(500).send('Internal server error');
     }
 };
+
+const recipientCreationOnLogin = async (req,res) => {
+
+    const user_id = req.user.user_id;
+
+        const user = await db.query(
+            `select * from users where user_id = $1`,
+            [user_id]
+        );
+
+        const recipient = await db.query(
+            `select * from recipient_profile where user_id = $1`,
+            [user_id]
+        );
+     if(recipient.rows.length > 0 && (recipient.rows[0].verification_status === 'Pending' || recipient.rows[0].verification_status === 'Approved'))
+        {
+            return res.render('recipient/recipientLogin', {
+                message: `Recipient Profile Already exists for user : ${user.rows[0].name}`
+            });
+        }
+
+        return res.redirect('/recipient')
+}
 
 const showRecipientProfile = async (req, res) => {
     try {
@@ -241,6 +270,17 @@ const createRecipient = async (req, res) => {
             message: `Your recipient profile has been sent to ${hospitalTitle} for approval. Here is your recipient_request ID: ${assignedRecipientId}. This can be used for further recipient profile login.`,
             notification_type: "Profile"
         });
+        // Send notification to hospital
+        await createHospitalNotification({
+            hospital_id: hospital_id,
+            user_id: user_id,
+            title: "New Recipient Profile Request",
+            message: `A new recipient profile request has been made by ${user.rows[0]?.name || 'a user'} (Recipient ID: ${assignedRecipientId}).`,
+            notification_type: "Profile",
+            request_type: "recipient_profile",
+            reference_id: assignedRecipientId,
+            action_url: "/hospital/profile-requests/recipients"
+        });
 
         console.log(`Recipient profile request created for user ${user_id} with recipient_id ${assignedRecipientId}`);
 
@@ -355,5 +395,6 @@ module.exports = {
     showUpdateRecipient,
     updateRecipientProfile,
     showProfileLogin,
-    unLockProfile
+    unLockProfile,
+    recipientCreationOnLogin
 };

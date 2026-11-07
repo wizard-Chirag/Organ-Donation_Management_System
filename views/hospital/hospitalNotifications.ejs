@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Notifications - <%= hospital.hospital_name || 'Hospital Portal' %></title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --badge-profile: #0284c7;
+            --badge-organ: #7c3aed;
+            --badge-test: #059669;
+            --badge-donor: #0369a1;
+            --badge-recipient: #0d9488;
+            --badge-alert: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 30px 20px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .header-card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .title-section h1 {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-section p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .badge-count {
+            background: #ef4444;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 999px;
+            vertical-align: middle;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--text-main);
+            border-color: var(--border);
+        }
+        .btn-secondary:hover {
+            background: #f1f5f9;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .btn-action-view {
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .btn-action-view:hover {
+            background: #1d4ed8;
+            color: #ffffff;
+        }
+
+        /* Section navigation tabs */
+        .tabs-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+            background: #f1f5f9;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background: #e0f2fe;
+        }
+
+        .tab-count {
+            background: var(--border);
+            color: var(--text-main);
+            font-size: 11px;
+            padding: 2px 7px;
+            border-radius: 999px;
+        }
+
+        .tab-btn.active .tab-count {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* Section Containers */
+        .section-container {
+            display: none;
+        }
+        .section-container.active-section {
+            display: block;
+        }
+
+        .section-header {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .section-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notification-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 30px;
+        }
+
+        .notification-item {
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            border-left: 5px solid var(--primary);
+            position: relative;
+            transition: transform 0.1s ease;
+        }
+
+        .notification-item.read-item {
+            border-left: 5px solid #cbd5e1;
+            background: #f8fafc;
+            opacity: 0.85;
+        }
+
+        .notif-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .badge-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .type-badge {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            color: #fff;
+        }
+
+        .type-badge.type-profile { background: var(--badge-profile); }
+        .type-badge.type-organ { background: var(--badge-organ); }
+        .type-badge.type-test { background: var(--badge-test); }
+
+        .sub-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+        .sub-badge.sub-donor {
+            background: #e0f2fe;
+            color: var(--badge-donor);
+            border: 1px solid #bae6fd;
+        }
+        .sub-badge.sub-recipient {
+            background: #ccfbf1;
+            color: var(--badge-recipient);
+            border: 1px solid #99f6e4;
+        }
+
+        .notif-date {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .notif-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .notif-message {
+            font-size: 14px;
+            color: #334155;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .notif-bottom {
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(226, 232, 240, 0.7);
+        }
+
+        .notif-actions-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .empty-state {
+            background: var(--card-bg);
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 12px;
+            border: 1px dashed var(--border);
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .empty-state h3 {
+            font-size: 16px;
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
+
+        .empty-state p {
+            font-size: 13px;
+        }
+
+        /* Coming soon banner for medical tests */
+        .coming-soon-banner {
+            background: #eff6ff;
+            border: 1px dashed #93c5fd;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            color: #1e40af;
+            margin-bottom: 20px;
+        }
+        .coming-soon-banner h3 {
+            font-size: 17px;
+            margin-bottom: 6px;
+        }
+        .coming-soon-banner p {
+            font-size: 13px;
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-card">
+        <div class="title-section">
+            <h1>
+                Hospital Notifications
+                <% if (unreadCount > 0) { %>
+                    <span class="badge-count"><%= unreadCount %> Pending Action</span>
+                <% } %>
+            </h1>
+            <p>
+                <strong><%= hospital.hospital_name || 'Hospital' %></strong> (<%= hospital.hospital_id %>) &bull;
+                Review and process donor, recipient, and organ request alerts.
+            </p>
+        </div>
+        <div class="actions">
+            <% if (unreadCount > 0) { %>
+                <form action="/hospital/notifications/read-all" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-secondary btn-sm">Mark All Done</button>
+                </form>
+            <% } %>
+            <a href="/hospitalDashboard" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Section Navigation Tabs -->
+    <div class="tabs-bar">
+        <button class="tab-btn active" onclick="switchSection('all', this)">
+            All Notifications
+            <span class="tab-count"><%= notifications.length %></span>
+        </button>
+        <button class="tab-btn" onclick="switchSection('profile', this)">
+            Profile Requests
+            <span class="tab-count"><%= profileNotifications.length %></span>
+        </button>
+        <button class="tab-btn" onclick="switchSection('organ', this)">
+            Organ Requests & Listings
+            <span class="tab-count"><%= organNotifications.length %></span>
+        </button>
+        <button class="tab-btn" onclick="switchSection('test', this)">
+            Test Result Updates
+            <span class="tab-count"><%= medicalTestNotifications.length %></span>
+        </button>
+        <% if (viewMode === 'history') { %>
+            <a href="/hospital/notifications" class="tab-btn" style="text-decoration:none;">
+                Active Notifications
+            </a>
+        <% } else { %>
+            <a href="/hospital/notifications?view=history" class="tab-btn" style="text-decoration:none;">
+                View History / Read
+            </a>
+        <% } %>
+    </div>
+
+    <!-- VIEW 1: ALL ACTIVE NOTIFICATIONS -->
+    <div id="section-all" class="section-container active-section">
+        <% if (notifications && notifications.length > 0) { %>
+            <div class="notification-list">
+                <% notifications.forEach(function(item) { %>
+                    <%- renderNotificationItem(item) %>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <h3>No pending notifications</h3>
+                <p>All profile and organ requests are currently processed and marked done.</p>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- SECTION 2: PROFILE REQUESTS (Donor & Recipient) -->
+    <div id="section-profile" class="section-container">
+        <div class="section-header">
+            <h2>Profile Requests (Donor & Recipient)</h2>
+        </div>
+        <% if (profileNotifications && profileNotifications.length > 0) { %>
+            <div class="notification-list">
+                <% profileNotifications.forEach(function(item) { %>
+                    <%- renderNotificationItem(item) %>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <h3>No pending profile requests</h3>
+                <p>There are no new donor or recipient profile requests awaiting hospital verification.</p>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- SECTION 3: ORGAN REQUESTS & LISTINGS -->
+    <div id="section-organ" class="section-container">
+        <div class="section-header">
+            <h2>Organ Requests & Listings</h2>
+        </div>
+        <% if (organNotifications && organNotifications.length > 0) { %>
+            <div class="notification-list">
+                <% organNotifications.forEach(function(item) { %>
+                    <%- renderNotificationItem(item) %>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <h3>No pending organ requests</h3>
+                <p>There are no new donor organ listings or recipient organ requests awaiting verification.</p>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- SECTION 4: TEST RESULT UPDATES (Scheduled for next phase) -->
+    <div id="section-test" class="section-container">
+        <div class="section-header">
+            <h2>Medical Test Result Updates</h2>
+        </div>
+        <div class="coming-soon-banner">
+            <h3>Medical Test Notifications Module</h3>
+            <p>Medical test result tracking and automated updates will be active in the upcoming development phase.</p>
+        </div>
+        <% if (medicalTestNotifications && medicalTestNotifications.length > 0) { %>
+            <div class="notification-list">
+                <% medicalTestNotifications.forEach(function(item) { %>
+                    <%- renderNotificationItem(item) %>
+                <% }); %>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- VIEW 5: HISTORY (READ/DONE NOTIFICATIONS) -->
+    <% if (viewMode === 'history') { %>
+        <div class="section-header" style="margin-top: 30px;">
+            <h2>Completed / Read Notification History</h2>
+        </div>
+        <% if (historyNotifications && historyNotifications.length > 0) { %>
+            <div class="notification-list">
+                <% historyNotifications.forEach(function(item) { %>
+                    <%- renderNotificationItem(item) %>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <h3>No completed notifications found</h3>
+                <p>History will be preserved here once requests are actioned or marked as read.</p>
+            </div>
+        <% } %>
+    <% } %>
+
+</div>
+
+<%
+// Helper to render individual notification card
+function renderNotificationItem(item) {
+    const formattedDate = new Date(item.created_at).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+
+    const isDonor = item.title.toLowerCase().includes('donor') || item.message.toLowerCase().includes('donor');
+    const isRecipient = item.title.toLowerCase().includes('recipient') || item.message.toLowerCase().includes('recipient');
+    const isOrgan = item.title.toLowerCase().includes('organ') || item.notification_type === 'Organ Request';
+
+    let typeBadgeClass = 'type-profile';
+    if (isOrgan) typeBadgeClass = 'type-organ';
+    if (item.notification_type === 'Medical Test') typeBadgeClass = 'type-test';
+
+    let html = `
+    <div class="notification-item ${item.is_read ? 'read-item' : 'unread-item'}">
+        <div class="notif-top">
+            <div class="badge-group">
+                <span class="type-badge ${typeBadgeClass}">${item.notification_type}</span>
+                ${isDonor ? '<span class="sub-badge sub-donor">Donor</span>' : ''}
+                ${isRecipient ? '<span class="sub-badge sub-recipient">Recipient</span>' : ''}
+            </div>
+            <span class="notif-date">${formattedDate}</span>
+        </div>
+
+        <div class="notif-title">${item.title}</div>
+        <div class="notif-message">${item.message}</div>
+
+        <div class="notif-bottom">
+            <div class="notif-actions-left">
+                <a href="${item.action_url}" class="btn btn-action-view btn-sm">
+                    View Request Details &rarr;
+                </a>
+            </div>
+
+            ${!item.is_read ? `
+                <form action="/hospital/notifications/${item.notification_h_id}/read" method="POST" style="margin:0;">
+                    <button type="submit" class="btn btn-secondary btn-sm">Mark Done</button>
+                </form>
+            ` : '<span style="font-size:12px; color:#64748b;">Completed</span>'}
+        </div>
+    </div>
+    `;
+    return html;
+}
+%>
+
+<script>
+    function switchSection(sectionId, btn) {
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        btn.classList.add('active');
+
+        document.querySelectorAll('.section-container').forEach(sec => {
+            sec.classList.remove('active-section');
+        });
+
+        const target = document.getElementById('section-' + sectionId);
+        if (target) {
+            target.classList.add('active-section');
+        }
+    }
+</script>
+
+</body>
+</html>

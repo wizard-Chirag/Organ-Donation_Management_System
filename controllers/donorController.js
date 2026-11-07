@@ -3,6 +3,7 @@ const db = require('../config/db');
 const { comparePassword, hashPassword } = require('../utils/passwords');
 const { ProfileToken } = require('../utils/generateToken');
 const { createNotification } = require('../utils/notificationService');
+const { createHospitalNotification } = require('../utils/hospitalNotificationService');
 
 const showProfileLogin = async (req, res) => {
     try {
@@ -262,6 +263,17 @@ const createDonorProfile = async (req, res) => {
             title: "Donor Profile Sent for Approval",
             message: `Your donor profile has been sent to ${hospitalTitle} for approval. Here is your donor_request ID: ${assignedDonorId}. This can be used for further donor profile login.`,
             notification_type: "Profile"
+        });
+        // Send notification to hospital
+        await createHospitalNotification({
+            hospital_id: hospital_id,
+            user_id: user_id,
+            title: "New Donor Profile Request",
+            message: `A new donor profile request has been made by ${user.rows[0]?.name || 'a user'} (Donor ID: ${assignedDonorId}).`,
+            notification_type: "Profile",
+            request_type: "donor_profile",
+            reference_id: assignedDonorId,
+            action_url: "/hospital/profile-requests/donor"
         });
 
         console.log(`Donor profile request created for user ${user_id} with donor_id ${assignedDonorId}`);

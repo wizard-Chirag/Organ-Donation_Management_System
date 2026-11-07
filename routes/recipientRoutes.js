@@ -13,7 +13,8 @@ const {
     showUpdateRecipient,
     updateRecipientProfile,
     showProfileLogin,
-    unLockProfile
+    unLockProfile,
+    recipientCreationOnLogin
 } = require('../controllers/recipeientController')
 
 router.get('/recipient/login',verifyUserToken,showProfileLogin)
@@ -24,6 +25,7 @@ router.get('/recipient/update',verifyUserToken,showUpdateRecipient)
 router.post('/recipient',verifyUserToken, recipientFolder.single('medical_report'), createRecipient)
 router.post('/recipient/update',verifyUserToken, recipientFolder.single('medical_report'), updateRecipientProfile)
 
+router.get('/recipientCreateOnLogin',verifyUserToken,recipientCreationOnLogin)
 router.post('/recipient/login',verifyUserToken,unLockProfile)
 router.post('/recipient/login/action',verifyUserToken,unLockProfile)
 

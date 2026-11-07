@@ -1,6 +1,7 @@
 const db = require('../../config/db')
 const {comparePassword} = require('../../utils/passwords')
 const { createNotification } = require('../../utils/notificationService')
+const { markNotificationDoneByRequest } = require('../../utils/hospitalNotificationService')
 
 const showProfileReqestDash = (req,res)=>{
 
@@ -228,6 +229,8 @@ const requestAction = async (req,res) => {
             });
         }
 
+        await markNotificationDoneByRequest(hospital, 'donor_profile', request_id);
+
         return res.json({
             success:true,
             message:action === "approve"
@@ -443,6 +446,8 @@ const RecipientRequestAction = async (req,res) => {
             });
         }
         
+        await markNotificationDoneByRequest(hospital_id, 'recipient_profile', request_id);
+
         return res.json(
                 {
                     success:true,

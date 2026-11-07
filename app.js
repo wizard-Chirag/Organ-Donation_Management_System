@@ -12,6 +12,10 @@ startOrganRequestScheduler()
 const { initNotificationTable } = require('./utils/notificationService')
 initNotificationTable()
 
+// ── Initialize hospital notifications table ────
+const { initHospitalNotificationTable } = require('./utils/hospitalNotificationService')
+initHospitalNotificationTable()
+
 const port = process.env.PORT || 3000
 
 app.use(exp.urlencoded({extended:true}))
@@ -61,6 +65,9 @@ app.use('/', hospitalProfileroute)
 
 const hospitalOrganroute = require('./routes/hospital/organRequestroutes')
 app.use('/', hospitalOrganroute)
+
+const hospitalNotificationRoutes = require('./routes/hospital/hospitalNotificationRoutes')
+app.use('/', hospitalNotificationRoutes)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

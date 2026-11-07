@@ -1,4 +1,5 @@
 const db = require('../../config/db')
+const { markNotificationDoneByRequest } = require('../../utils/hospitalNotificationService')
 const {comparePassword} = require('../../utils/passwords')
 const path = require('path')
 const fs = require('fs')
@@ -221,6 +222,7 @@ const DonorOrganAction = async (req,res) =>{
         }
 
         await client.query("COMMIT");
+        await markNotificationDoneByRequest(hospital_id, 'donor_organ', organ_listing_id);
 
 
         return res.json({
@@ -480,6 +482,7 @@ const OrganRequestAction = async (req, res) => {
         }
 
         await client.query('COMMIT')
+        await markNotificationDoneByRequest(hospital_id, 'organ_request', request_id)
 
         return res.json({
             success: true,
