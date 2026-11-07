@@ -9,7 +9,6 @@ const uploadFolder = require("../middleware/uploads");
 const donoFolder = uploadFolder('DonorDocs')
 
 const {
-    showDonorProfile,
     createDonorProfile,
     updateDonorProfile,
     showDonorUpdateProfile,
@@ -41,7 +40,7 @@ router.post('/donor/login/action', verifyUserToken, unLockProfile)
 router.get('/donorCreateOnLogin',verifyUserToken,DonorCreationOnLogin)
 
 router.get('/donor/create',verifyUserToken,showDonorCreation)
-router.post('/donor/create',verifyUserToken,createDonorProfile)
+router.post('/donor/create',verifyUserToken,donoFolder.single("medical_report"),createDonorProfile)
 
 router.get('/donor/dashboard',verifyUserToken,verifyDprofileToken,showDonorDashboard)
 

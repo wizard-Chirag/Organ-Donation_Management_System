@@ -1,7 +1,7 @@
 // READY FOR LAUNCH
 const db = require('../config/db');
 const { comparePassword, hashPassword } = require('../utils/passwords');
-const { ProfileToken } = require('../utils/generateToken');
+const { DonerToken } = require('../utils/generateToken');
 const { createNotification } = require('../utils/notificationService');
 const { createHospitalNotification } = require('../utils/hospitalNotificationService');
 
@@ -9,8 +9,9 @@ const showProfileLogin = async (req, res) => {
 
     try {
         const user_id = req.user.user_id;
-        const profileCookie = req.cookies.Dprofiletoken;
+        const profileCookie = req.cookies.DprofileToken;
 
+        console.log(profileCookie)
         if (profileCookie) {
 
             const user = await db.query(
@@ -99,7 +100,7 @@ const unLockProfile = async (req, res) => {
             });
         }
 
-        let profileToken = ProfileToken(id, type);
+        let profileToken = DonerToken(id, type);
         res.cookie('DprofileToken', profileToken, {
             httpOnly: true,
             secure: false,

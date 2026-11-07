@@ -16,7 +16,20 @@ const GenerateToken = (user)=>{
     return token
 }
 
-const ProfileToken = (id,type)=>{
+const DonerToken = (id,type)=>{
+
+    let payload = {
+       profile_id: id,
+       profile_type:type
+    }
+    const Profiletoken = jwt.sign(payload,profileKey,{
+        expiresIn:'7m'
+    })
+
+    return Profiletoken
+}
+
+const RecipientToken = (id,type)=>{
 
     let payload = {
        profile_id: id,
@@ -43,4 +56,4 @@ const hospitalGenToken = (hospital)=>{
     return hospitalToken
 }
 
-module.exports = {GenerateToken,ProfileToken,hospitalGenToken}
+module.exports = {GenerateToken,DonerToken,RecipientToken,hospitalGenToken}

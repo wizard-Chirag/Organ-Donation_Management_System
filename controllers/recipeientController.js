@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { ProfileToken } = require('../utils/generateToken');
+const { RecipientToken } = require('../utils/generateToken');
 const { comparePassword, hashPassword } = require('../utils/passwords');
 const { createNotification } = require('../utils/notificationService');
 const { createHospitalNotification } = require('../utils/hospitalNotificationService');
@@ -100,7 +100,7 @@ const unLockProfile = async (req, res) => {
             });
         }
 
-        let profileToken = ProfileToken(id,type);
+        let profileToken = RecipientToken(id,type);
         res.cookie('RprofileToken', profileToken, {
             httpOnly: true,
             secure: false,
