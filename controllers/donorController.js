@@ -481,14 +481,14 @@ const registerOrgan = async (req, res) => {
                 message: 'All fields are mandatory'
             });
         }
-
+console.log('kande na parasivana99')
         let donor;
         if (donor_id) {
             donor = await db.query(`select * from donor_profile where donor_id = $1`, [donor_id]);
         } else {
             donor = await db.query(`select * from donor_profile where user_id = $1`, [user_id]);
         }
-
+console.log('kande na parasivana00')
         if (donor.rows.length === 0) {
             return res.render('donor/listOrgan', {
                 organs: organs.rows,
@@ -496,7 +496,7 @@ const registerOrgan = async (req, res) => {
                 message: 'Donor profile not found'
             });
         }
-
+console.log('kande na parasivana11')
         const compare = await comparePassword(donor_password, donor.rows[0].donor_password);
         if (!compare) {
             return res.render('donor/listOrgan', {
@@ -505,9 +505,10 @@ const registerOrgan = async (req, res) => {
                 message: 'Incorrect donor profile password'
             });
         }
-
+console.log('kande na parasivana22')
         const normalizedDocPath = medical_report.path.replace(/\\/g, '/');
 
+        console.log('kande na parasivana')
         await db.query(
             `insert into donor_organ (donor_id, organ_id, verified_hospital_id, verified_at, medical_document_path, verification_status, 
              donor_consent)
@@ -516,7 +517,7 @@ const registerOrgan = async (req, res) => {
         );
 
         console.log("Organ registered successfully");
-        return res.redirect('/donor');
+        return res.redirect('/donor/dashboard');
 
     } catch (error) {
         console.error("Error in registerOrgan:", error);
