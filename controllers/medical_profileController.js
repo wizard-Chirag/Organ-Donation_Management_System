@@ -79,7 +79,7 @@ const createMedicalProfile = async (req, res) => {
                 user: currentUser,
                 medical: req.body,
                 emergencyError: "Emergency contact cannot be your own contact details."
-            });
+            }); 
         }
 
         // CHECK IF USER HAS MEDICAL PROFILE

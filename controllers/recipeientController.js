@@ -177,13 +177,13 @@ const showRecipientCreation = async (req,res)=>{
             `select hospital_id, hospital_name from hospital order by hospital_name ASC`
         );
 
-        if (user.rows[0]) {
-                user.rows[0].blood_group = medical_record.rows[0].bloodgroup;
-            }
-        if(medical_record.rows[0].length>0){
+        if(medical_record.rows.length==0){
             console.log('medical report absent bruh')
             return res.redirect('/medical')
         } 
+        if (user.rows[0]) {
+                user.rows[0].blood_group = medical_record.rows[0].bloodgroup;
+            }
 
         console.log("Create Donor Page opened");
             return res.render('recipient/createRecipient', {
