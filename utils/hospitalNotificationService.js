@@ -28,6 +28,13 @@ const initHospitalNotificationTable = async () => {
             ALTER TABLE notifications_hospital ADD CONSTRAINT notifications_hospital_notification_type_check 
                 CHECK (notification_type IN ('Profile', 'Match', 'Medical Test', 'Transplant', 'Reminder', 'Information', 'Organ Request', 'Organ Listing'));
 
+            -- Ensure is_eligible_for_matching exists on donor_organ
+            ALTER TABLE donor_organ 
+                ADD COLUMN IF NOT EXISTS is_eligible_for_matching BOOLEAN DEFAULT FALSE;
+
+            -- Ensure verify_document_var enum supports 'Withdrawn'
+            ALTER TYPE verify_document_var ADD VALUE IF NOT EXISTS 'Withdrawn';
+
             CREATE INDEX IF NOT EXISTS idx_notif_hosp_id ON notifications_hospital(hospital_id);
             CREATE INDEX IF NOT EXISTS idx_notif_hosp_read ON notifications_hospital(hospital_id, is_read);
         `);
@@ -146,7 +153,9 @@ const syncHospitalNotifications = async (hospital_id) => {
             JOIN donor_profile dp ON d_o.donor_id = dp.donor_id
             JOIN users u ON dp.user_id = u.user_id
             JOIN organ_type ot ON d_o.organ_id = ot.organ_id
-            WHERE d_o.verified_hospital_id = $1 AND d_o.verification_status = 'Pending'
+            WHERE d_o.verified_hospital_id = $1 
+              AND d_o.verification_status = 'Pending'
+              AND d_o.availability_status != 'Withdrawn'
         `, [hospital_id]);
 
         for (const row of pendingOrgans.rows) {
@@ -220,6 +229,16 @@ const syncHospitalNotifications = async (hospital_id) => {
               AND d_o.verification_status != 'Pending'
               AND nh.hospital_id = $1
               AND nh.is_read = false
+        `, [hospital_id]);
+
+        // Erase any hospital notifications for withdrawn donor organs
+        await db.query(`
+            DELETE FROM notifications_hospital nh
+            USING donor_organ d_o
+            WHERE nh.request_type = 'donor_organ'
+              AND nh.reference_id = d_o.do_id
+              AND (d_o.verification_status = 'Withdrawn' OR d_o.availability_status = 'Withdrawn')
+              AND nh.hospital_id = $1
         `, [hospital_id]);
 
         // Organ request resolved
@@ -330,6 +349,20 @@ const markNotificationDoneByRequest = async (hospital_id, request_type, referenc
     }
 };
 
+/**
+ * Erases notifications for a specific request (e.g. when an organ listing is cancelled/withdrawn).
+ */
+const eraseHospitalNotificationByRequest = async (request_type, reference_id) => {
+    try {
+        await db.query(`
+            DELETE FROM notifications_hospital
+            WHERE request_type = $1 AND reference_id = $2
+        `, [request_type, reference_id]);
+    } catch (e) {
+        console.error("Error erasing hospital notification by request:", e);
+    }
+};
+
 module.exports = {
     initHospitalNotificationTable,
     createHospitalNotification,
@@ -338,5 +371,6 @@ module.exports = {
     getHospitalUnreadCount,
     markHospitalNotificationAsRead,
     markAllHospitalNotificationsAsRead,
-    markNotificationDoneByRequest
+    markNotificationDoneByRequest,
+    eraseHospitalNotificationByRequest
 };

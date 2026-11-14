@@ -444,6 +444,19 @@
         <div class="section-header">
             <h2>Organ Requests & Listings</h2>
         </div>
+
+        <!-- Sub-filter pills for Organ section -->
+        <div class="filter-bar" style="margin-bottom: 18px; display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm organ-sub-pill active-pill" onclick="filterOrganSubtype('all', this)">
+                All Organ Alerts (<%= organNotifications.length %>)
+            </button>
+            <button class="btn btn-secondary btn-sm organ-sub-pill" onclick="filterOrganSubtype('listing', this)">
+                Donor Organ Listings (<%= organNotifications.filter(n => n.request_type === 'donor_organ' || n.title.toLowerCase().includes('listing')).length %>)
+            </button>
+            <button class="btn btn-secondary btn-sm organ-sub-pill" onclick="filterOrganSubtype('request', this)">
+                Recipient Organ Requests (<%= organNotifications.filter(n => n.request_type === 'organ_request' || n.title.toLowerCase().includes('request')).length %>)
+            </button>
+        </div>
         <% if (organNotifications && organNotifications.length > 0) { %>
             <div class="notification-list">
                 <% organNotifications.forEach(function(item) { %>
@@ -517,8 +530,14 @@ function renderNotificationItem(item) {
     if (isOrgan) typeBadgeClass = 'type-organ';
     if (item.notification_type === 'Medical Test') typeBadgeClass = 'type-test';
 
+    const isOrganListing = item.request_type === 'donor_organ' || item.title.toLowerCase().includes('listing');
+    const isOrganRequest = item.request_type === 'organ_request' || (isOrgan && !isOrganListing);
+    let organSubtype = 'none';
+    if (isOrganListing) organSubtype = 'listing';
+    else if (isOrganRequest) organSubtype = 'request';
+
     let html = `
-    <div class="notification-item ${item.is_read ? 'read-item' : 'unread-item'}">
+    <div class="notification-item ${item.is_read ? 'read-item' : 'unread-item'}" data-organ-subtype="${organSubtype}">
         <div class="notif-top">
             <div class="badge-group">
                 <span class="type-badge ${typeBadgeClass}">${item.notification_type}</span>
@@ -551,6 +570,27 @@ function renderNotificationItem(item) {
 %>
 
 <script>
+    function filterOrganSubtype(subtype, btn) {
+        document.querySelectorAll('.organ-sub-pill').forEach(el => {
+            el.style.background = 'rgba(30, 41, 59, 0.7)';
+            el.style.color = '#e2e8f0';
+        });
+        btn.style.background = '#2563eb';
+        btn.style.color = '#ffffff';
+
+        const organItems = document.querySelectorAll('#section-organ .notification-item');
+        organItems.forEach(item => {
+            const itemSub = item.getAttribute('data-organ-subtype');
+            if (subtype === 'all') {
+                item.style.display = 'block';
+            } else if (itemSub === subtype) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
     function switchSection(sectionId, btn) {
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         btn.classList.add('active');

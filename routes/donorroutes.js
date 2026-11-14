@@ -16,6 +16,10 @@ const {
     unLockProfile,
     ShowregisterOrgan,
     registerOrgan,
+    showDonorOrgans,
+    showUpdateOrganListing,
+    updateOrganListing,
+    cancelOrganListing,
     DonorCreationOnLogin,
     showDonorCreation,
     showDonorDashboard
@@ -51,5 +55,12 @@ router.post("/donor/update", verifyUserToken, verifyDprofileToken, donoFolder.si
 // ORGAN LISTING PAGE
 router.get('/donor/register_organ', verifyUserToken, verifyDprofileToken, ShowregisterOrgan)
 router.post('/donor/register_organ', verifyUserToken, verifyDprofileToken, donoFolder.single("medical_report"), registerOrgan)
+
+
+// DONOR LISTED ORGANS & MANAGEMENT
+router.get('/donor/organ/:id/edit', verifyUserToken, verifyDprofileToken, showUpdateOrganListing);
+router.get('/donor/organs', verifyUserToken, verifyDprofileToken, showDonorOrgans);
+router.post('/donor/organ/:id/edit', verifyUserToken, verifyDprofileToken, donoFolder.single("medical_report"), updateOrganListing);
+router.post('/donor/organ/:id/cancel', verifyUserToken, verifyDprofileToken, cancelOrganListing);
 
 module.exports = router

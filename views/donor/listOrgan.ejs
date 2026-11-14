@@ -13,9 +13,9 @@
 <main class="organ-container">
 
     <header class="page-header">
-        <a href="/donor/dashboard" class="back-link">&larr; Back to Donor Dashboard</a>
+        <a href="<%= (typeof isUpdate !== 'undefined' && isUpdate) ? '/donor/organs' : '/donor/dashboard' %>" class="back-link">&larr; Back to <%= (typeof isUpdate !== 'undefined' && isUpdate) ? 'My Registered Organs' : 'Donor Dashboard' %></a>
 
-        <h1>Register a New Organ</h1>
+        <h1><%= (typeof isUpdate !== 'undefined' && isUpdate) ? 'Update Organ Listing' : 'Register a New Organ' %></h1>
 
         <p>
             Submit your organ details and medical testing documents
@@ -31,7 +31,7 @@
     <% } %>
 
     <form
-        action="/donor/register_organ"
+        action="<%= (typeof isUpdate !== 'undefined' && isUpdate) ? '/donor/organ/' + listing.do_id + '/edit' : '/donor/register_organ' %>"
         method="POST"
         enctype="multipart/form-data"
         id="organForm"
@@ -49,7 +49,7 @@
                     <option value="">Select an organ</option>
 
                     <% organs.forEach(organ => { %>
-                        <option value="<%= organ.organ_id %>">
+                        <option value="<%= organ.organ_id %>" <%= (typeof isUpdate !== 'undefined' && isUpdate && listing && listing.organ_id == organ.organ_id) ? 'selected' : '' %>>
                             <%= organ.organ_name %>
                         </option>
                     <% }) %>
@@ -80,7 +80,7 @@
                     </option>
 
                     <% hospitals.forEach(hospital => { %>
-                        <option value="<%= hospital.hospital_id %>">
+                        <option value="<%= hospital.hospital_id %>" <%= (typeof isUpdate !== 'undefined' && isUpdate && listing && listing.verified_hospital_id == hospital.hospital_id) ? 'selected' : '' %>>
                             <%= hospital.hospital_name %>
                             <% if (hospital.city) { %>
                                 — <%= hospital.city %>
@@ -107,6 +107,7 @@
                     id="test_date"
                     name="test_date"
                     max="<%= new Date().toISOString().split('T')[0] %>"
+                    value="<%= (typeof isUpdate !== 'undefined' && isUpdate && listing && listing.verified_at) ? new Date(listing.verified_at).toISOString().split('T')[0] : '' %>"
                     required
                 >
             </div>
@@ -122,12 +123,12 @@
                     id="medical_report"
                     name="medical_report"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    required
+                    <%= (typeof isUpdate !== 'undefined' && isUpdate) ? '' : 'required' %>
                 >
 
                 <small>
                     Accepted formats: PDF, JPG, JPEG and PNG.
-                    Maximum file size: 5 MB.
+                    Maximum file size: 5 MB.<% if (typeof isUpdate !== 'undefined' && isUpdate && listing && listing.medical_document_path) { %><br><span style="color:#60a5fa;">Current Document: <a href="/<%= listing.medical_document_path %>" target="_blank" style="color:#93c5fd; text-decoration:underline;">View current file</a> (upload new file to replace)</span><% } %>
                 </small>
             </div>
 
@@ -197,7 +198,7 @@
         <div class="form-actions">
 
             <button type="submit" id="submitButton">
-                Submit Organ for Verification
+                <%= (typeof isUpdate !== 'undefined' && isUpdate) ? 'Update Organ Listing' : 'Submit Organ for Verification' %>
             </button>
 
             <a href="/donor/dasbhboard" class="cancel-link">

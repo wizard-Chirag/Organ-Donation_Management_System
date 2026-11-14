@@ -3,7 +3,7 @@ const db = require('../config/db');
 const { comparePassword, hashPassword } = require('../utils/passwords');
 const { DonerToken } = require('../utils/generateToken');
 const { createNotification } = require('../utils/notificationService');
-const { createHospitalNotification } = require('../utils/hospitalNotificationService');
+const { createHospitalNotification, eraseHospitalNotificationByRequest } = require('../utils/hospitalNotificationService');
 
 const showProfileLogin = async (req, res) => {
 
@@ -30,6 +30,7 @@ const showProfileLogin = async (req, res) => {
             return res.render('donor/donorDashboard', {
                 user: user.rows[0],
                 donor: donor.rows[0],
+                message:null,
                 hospital: hospital.rows[0] || { hospital_name: 'Not assigned' }
             });
         }
@@ -226,6 +227,7 @@ const showDonorDashboard = async (req, res) => {
                 return res.render('donor/donorDashboard', {
                     user: user.rows[0],
                     donor: donor.rows[0],
+                    message:null,
                     hospital: donorHospital.rows[0] || { hospital_name: 'Not assigned' }
                 });
             }
@@ -425,6 +427,8 @@ const updateDonorProfile = async (req, res) => {
 
 const ShowregisterOrgan = async (req, res) => {
     try {
+        const donor_id = req.profile ? req.profile.profile_id : null;
+        const user_id = req.user.user_id;
         console.log('Organ listing page loaded');
 
         const hospitals = await db.query(
@@ -433,6 +437,26 @@ const ShowregisterOrgan = async (req, res) => {
         const organ = await db.query(
             `select organ_id, organ_name from organ_type order by organ_name ASC`
         );
+        const donor = await db.query(`select * from donor_profile where donor_id = $1`, [donor_id]);
+
+        const hospital = await db.query(
+            `select h.hospital_name , h.city
+            from hospital h
+            join donor_profile dp on
+            dp.registered_hospital_id = h.hospital_id`
+        );
+        const user = await db.query(
+            `select * from users where user_id = $1`,[user_id]
+        )
+
+        if(donor.rows[0].verification_status != 'Approved'){
+            return res.render('donor/donorDashboard',{
+                donor:donor.rows[0],
+                user:user.rows[0],
+                hospital:hospital.rows[0],
+                message:'Profile not Approved'
+            })
+        }
 
         return res.render('donor/listOrgan', {
             organs: organ.rows,
@@ -463,6 +487,7 @@ const registerOrgan = async (req, res) => {
         const hospitals = await db.query(
             `select hospital_id, hospital_name, city from hospital order by hospital_name ASC`
         );
+        
         const organs = await db.query(
             `select organ_id, organ_name from organ_type order by organ_name ASC`
         );
@@ -481,14 +506,14 @@ const registerOrgan = async (req, res) => {
                 message: 'All fields are mandatory'
             });
         }
-console.log('kande na parasivana99')
+
         let donor;
         if (donor_id) {
             donor = await db.query(`select * from donor_profile where donor_id = $1`, [donor_id]);
         } else {
             donor = await db.query(`select * from donor_profile where user_id = $1`, [user_id]);
         }
-console.log('kande na parasivana00')
+
         if (donor.rows.length === 0) {
             return res.render('donor/listOrgan', {
                 organs: organs.rows,
@@ -496,7 +521,7 @@ console.log('kande na parasivana00')
                 message: 'Donor profile not found'
             });
         }
-console.log('kande na parasivana11')
+
         const compare = await comparePassword(donor_password, donor.rows[0].donor_password);
         if (!compare) {
             return res.render('donor/listOrgan', {
@@ -505,23 +530,469 @@ console.log('kande na parasivana11')
                 message: 'Incorrect donor profile password'
             });
         }
-console.log('kande na parasivana22')
-        const normalizedDocPath = medical_report.path.replace(/\\/g, '/');
 
-        console.log('kande na parasivana')
-        await db.query(
-            `insert into donor_organ (donor_id, organ_id, verified_hospital_id, verified_at, medical_document_path, verification_status, 
-             donor_consent)
-             values ($1, $2, $3, $4, $5, $6, $7)`,
-            [donor.rows[0].donor_id, organ_id, testing_hospital_id, test_date, normalizedDocPath, 'Pending', 'Provided']
+        // Rule 1: Block registering the same organ until hospital approves or rejects it
+        // Or if approved and currently Available
+        const existingListing = await db.query(
+            `SELECT do_id, verification_status, availability_status 
+             FROM donor_organ 
+             WHERE donor_id = $1 AND organ_id = $2
+             ORDER BY do_id DESC`,
+            [donor.rows[0].donor_id, organ_id]
         );
 
-        console.log("Organ registered successfully");
-        return res.redirect('/donor/dashboard');
+        if (existingListing.rows.length > 0) {
+            const pending = existingListing.rows.find(r => r.verification_status === 'Pending');
+            if (pending) {
+                return res.render('donor/listOrgan', {
+                    organs: organs.rows,
+                    hospitals: hospitals.rows,
+                    message: 'You already have a pending registration for this organ awaiting hospital verification. You cannot register the same organ until it is processed.'
+                });
+            }
+
+            const active = existingListing.rows.find(r => r.verification_status === 'Approved' && r.availability_status === 'Available');
+            if (active) {
+                return res.render('donor/listOrgan', {
+                    organs: organs.rows,
+                    hospitals: hospitals.rows,
+                    message: 'You already have an approved and active listing for this organ. You cannot list the same organ until it is used or withdrawn.'
+                });
+            }
+        }
+
+        const normalizedDocPath = medical_report.path.replace(/\\/g, '/');
+
+
+        // Insert donor organ listing
+        const insertRes = await db.query(
+            `INSERT INTO donor_organ (
+                donor_id, organ_id, verified_hospital_id, verified_at, 
+                medical_document_path, verification_status, donor_consent, 
+                availability_status, is_eligible_for_matching, registered_at
+             )
+             VALUES ($1, $2, $3, $4, $5, 'Pending', 'Provided', 'Available', false, NOW())
+             RETURNING do_id`,
+            [donor.rows[0].donor_id, organ_id, testing_hospital_id, test_date, normalizedDocPath]
+        );
+
+        const newListingId = insertRes.rows[0].do_id;
+
+        const organInfo = await db.query(`SELECT organ_name FROM organ_type WHERE organ_id = $1`, [organ_id]);
+        const hospInfo = await db.query(`SELECT hospital_name FROM hospital WHERE hospital_id = $1`, [testing_hospital_id]);
+        const userInfo = await db.query(`SELECT name FROM users WHERE user_id = $1`, [user_id]);
+
+        const organName = organInfo.rows[0]?.organ_name || "Organ";
+        const hospitalName = hospInfo.rows[0]?.hospital_name || "the hospital";
+        const userName = userInfo.rows[0]?.name || "Donor";
+
+        // Notify donor
+        await createNotification({
+            user_id: user_id,
+            title: "Organ Listing Submitted",
+            message: `Your registration for organ ${organName} (Listing ID: ${newListingId}) with donor_id ${donor.rows[0].donor_id} has been submitted to ${hospitalName} for verification.`,
+            notification_type: "Profile"
+        });
+
+        // Notify hospital
+        await createHospitalNotification({
+            hospital_id: testing_hospital_id,
+            user_id: user_id,
+            title: "New Donor Organ Listing",
+            message: `A new donor organ listing for organ ${organName} has been made with donor_id ${donor.rows[0].donor_id} (user_id: ${user_id}, Listing ID: ${newListingId}).`,
+            notification_type: "Organ Request",
+            request_type: "donor_organ",
+            reference_id: newListingId,
+            action_url: "/hospital/donor_organ-listings"
+        });
+
+        console.log("Organ registered successfully with ID:", newListingId);
+        return res.redirect('/donor/organs?msg=Organ+registered+successfully');
 
     } catch (error) {
         console.error("Error in registerOrgan:", error);
         return res.status(500).send('Internal Server Error');
+    }
+};
+
+/**
+ * Display all organs the donor has listed previously and presently.
+ */
+const showDonorOrgans = async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+        const profile_id = req.profile ? req.profile.profile_id : null;
+
+        let donorRes;
+        if (profile_id) {
+            donorRes = await db.query(`SELECT * FROM donor_profile WHERE donor_id = $1`, [profile_id]);
+        } else {
+            donorRes = await db.query(`SELECT * FROM donor_profile WHERE user_id = $1`, [user_id]);
+        }
+
+        if (donorRes.rows.length === 0) {
+            return res.redirect('/donor/login');
+        }
+
+        const donor = donorRes.rows[0];
+
+        const userRes = await db.query(`SELECT * FROM users WHERE user_id = $1`, [user_id]);
+        const user = userRes.rows[0];
+
+        const medicalRes = await db.query(`SELECT * FROM user_medical_info WHERE user_id = $1`, [user_id]);
+        const medical = medicalRes.rows[0] || {};
+
+
+        const hospital = await db.query(
+            `select h.hospital_name , h.city
+            from hospital h
+            join donor_profile dp on
+            dp.registered_hospital_id = h.hospital_id`
+        );
+
+        if(donor.verification_status != 'Approved'){
+            return res.render('donor/donorDashboard',{
+                donor:donor,
+                user:user,
+                hospital:hospital.rows[0],
+                message:'Profile not Approved || No organ Registered'
+            })
+        }
+
+        // Query all organ listings by this donor
+        const listingsRes = await db.query(`
+            SELECT 
+                d_o.do_id,
+                d_o.donor_id,
+                d_o.organ_id,
+                d_o.medical_document_path,
+                d_o.verification_status,
+                d_o.verified_hospital_id,
+                d_o.verified_at,
+                d_o.availability_status,
+                d_o.registered_at,
+                d_o.rejection_reason,
+                COALESCE(d_o.is_eligible_for_matching, false) AS is_eligible_for_matching,
+                ot.organ_name,
+                h.hospital_name,
+                h.city AS hospital_city,
+                u.name AS donor_name,
+                u.email AS donor_email,
+                u.phone_number AS donor_phone,
+                u.gender AS donor_gender,
+                u.dob AS donor_dob,
+                u.user_id,
+                m.bloodgroup
+            FROM donor_organ d_o
+            JOIN donor_profile dp ON d_o.donor_id = dp.donor_id
+            JOIN users u ON dp.user_id = u.user_id
+            LEFT JOIN user_medical_info m ON m.user_id = u.user_id
+            JOIN organ_type ot ON d_o.organ_id = ot.organ_id
+            JOIN hospital h ON d_o.verified_hospital_id = h.hospital_id
+            WHERE d_o.donor_id = $1
+            ORDER BY d_o.registered_at DESC, d_o.do_id DESC
+        `, [donor.donor_id]);
+
+        // Process listings to compute re-testing date (1 month after verified_at)
+        const listings = listingsRes.rows.map(item => {
+            let retestDate = null;
+            if (item.verified_at) {
+                const prevDate = new Date(item.verified_at);
+                const nextDate = new Date(prevDate);
+                nextDate.setMonth(nextDate.getMonth() + 1);
+                retestDate = nextDate;
+            }
+            return {
+                ...item,
+                retest_date: retestDate
+            };
+        });
+
+        // Organs list for filter dropdown
+        const organTypes = await db.query(`SELECT organ_id, organ_name FROM organ_type ORDER BY organ_name ASC`);
+
+        return res.render('donor/donorOrgans', {
+            user: { ...user, bloodgroup: medical.bloodgroup || user.blood_group },
+            donor,
+            listings,
+            organs: organTypes.rows,
+            message: req.query.msg || null
+        });
+
+    } catch (error) {
+        console.error("Error in showDonorOrgans:", error);
+        return res.status(500).send("Internal Server Error loading donor organs.");
+    }
+};
+
+/**
+ * Show page to update organ listing (enabled only before hospital approval).
+ */
+const showUpdateOrganListing = async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+        const profile_id = req.profile ? req.profile.profile_id : null;
+        const listingId = parseInt(req.params.id, 10);
+
+        let donorRes;
+        if (profile_id) {
+            donorRes = await db.query(`SELECT * FROM donor_profile WHERE donor_id = $1`, [profile_id]);
+        } else {
+            donorRes = await db.query(`SELECT * FROM donor_profile WHERE user_id = $1`, [user_id]);
+        }
+
+        if (donorRes.rows.length === 0) {
+            return res.redirect('/donor/login');
+        }
+
+        const listingRes = await db.query(
+            `SELECT * FROM donor_organ WHERE do_id = $1 AND donor_id = $2`,
+            [listingId, donorRes.rows[0].donor_id]
+        );
+
+        if (listingRes.rows.length === 0) {
+            return res.redirect('/donor/organs?msg=Organ+listing+not+found');
+        }
+
+        const listing = listingRes.rows[0];
+
+        // Only allow update BEFORE approval and only if NOT withdrawn
+        if (listing.verification_status !== 'Pending' || listing.availability_status === 'Withdrawn' || listing.donor_consent === 'Withdrawn') {
+            return res.redirect('/donor/organs?msg=Withdrawn+or+finalized+organ+listings+cannot+be+updated');
+        }
+
+        const hospitals = await db.query(
+            `SELECT hospital_id, hospital_name, city FROM hospital ORDER BY hospital_name ASC`
+        );
+        const organs = await db.query(
+            `SELECT organ_id, organ_name FROM organ_type ORDER BY organ_name ASC`
+        );
+
+        return res.render('donor/listOrgan', {
+            organs: organs.rows,
+            hospitals: hospitals.rows,
+            listing,
+            isUpdate: true,
+            title: 'Update Organ Listing',
+            message: null
+        });
+
+    } catch (error) {
+        console.error("Error in showUpdateOrganListing:", error);
+        return res.status(500).send("Internal Server Error");
+    }
+};
+
+/**
+ * Handle updating an organ listing before approval.
+ */
+const updateOrganListing = async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+        const profile_id = req.profile ? req.profile.profile_id : null;
+        const listingId = parseInt(req.params.id, 10);
+
+        const {
+            organ_id,
+            testing_hospital_id,
+            test_date,
+            donor_password,
+            donor_consent
+        } = req.body;
+
+        const medical_report = req.file;
+
+        let donorRes;
+        if (profile_id) {
+            donorRes = await db.query(`SELECT * FROM donor_profile WHERE donor_id = $1`, [profile_id]);
+        } else {
+            donorRes = await db.query(`SELECT * FROM donor_profile WHERE user_id = $1`, [user_id]);
+        }
+
+        if (donorRes.rows.length === 0) {
+            return res.redirect('/donor/login');
+        }
+
+        const donor = donorRes.rows[0];
+
+        const listingRes = await db.query(
+            `SELECT * FROM donor_organ WHERE do_id = $1 AND donor_id = $2`,
+            [listingId, donor.donor_id]
+        );
+
+        if (listingRes.rows.length === 0) {
+            return res.redirect('/donor/organs?msg=Organ+listing+not+found');
+        }
+
+        const listing = listingRes.rows[0];
+
+        // Block update if not Pending or if Withdrawn
+        if (listing.verification_status !== 'Pending' || listing.availability_status === 'Withdrawn' || listing.donor_consent === 'Withdrawn') {
+            return res.redirect('/donor/organs?msg=Withdrawn+or+processed+organ+listings+cannot+be+updated');
+        }
+
+        // Verify password
+        const compare = await comparePassword(donor_password, donor.donor_password);
+        if (!compare) {
+            const hospitals = await db.query(`SELECT hospital_id, hospital_name, city FROM hospital ORDER BY hospital_name ASC`);
+            const organs = await db.query(`SELECT organ_id, organ_name FROM organ_type ORDER BY organ_name ASC`);
+            return res.render('donor/listOrgan', {
+                organs: organs.rows,
+                hospitals: hospitals.rows,
+                listing: { ...listing, organ_id, verified_hospital_id: testing_hospital_id, verified_at: test_date },
+                isUpdate: true,
+                title: 'Update Organ Listing',
+                message: 'Incorrect donor profile password.'
+            });
+        }
+
+        let docPath = listing.medical_document_path;
+        if (medical_report) {
+            docPath = medical_report.path.replace(/\\/g, '/');
+        }
+
+        // Update donor_organ
+        await db.query(`
+            UPDATE donor_organ 
+            SET organ_id = $1,
+                verified_hospital_id = $2,
+                verified_at = $3,
+                medical_document_path = $4,
+                rejection_reason = NULL
+            WHERE do_id = $5 AND donor_id = $6
+        `, [organ_id, testing_hospital_id, test_date, docPath, listingId, donor.donor_id]);
+
+        const organInfo = await db.query(`SELECT organ_name FROM organ_type WHERE organ_id = $1`, [organ_id]);
+        const hospInfo = await db.query(`SELECT hospital_name FROM hospital WHERE hospital_id = $1`, [testing_hospital_id]);
+        const userInfo = await db.query(`SELECT name FROM users WHERE user_id = $1`, [user_id]);
+
+        const organName = organInfo.rows[0]?.organ_name || "Organ";
+        const hospitalName = hospInfo.rows[0]?.hospital_name || "the hospital";
+        const userName = userInfo.rows[0]?.name || "Donor";
+
+        // Notify donor
+        await createNotification({
+            user_id: user_id,
+            title: "Organ Listing Updated",
+            message: `Your organ listing for ${organName} (Listing ID: ${listingId}) has been updated and is awaiting verification by ${hospitalName}.`,
+            notification_type: "Profile"
+        });
+
+        // Notify hospital
+        await createHospitalNotification({
+            hospital_id: testing_hospital_id,
+            user_id: user_id,
+            title: "Donor Organ Listing Updated",
+            message: `The donor organ listing for ${organName} (Listing ID: ${listingId}) has been updated by ${userName}.`,
+            notification_type: "Organ Request",
+            request_type: "donor_organ",
+            reference_id: listingId,
+            action_url: "/hospital/donor_organ-listings"
+        });
+
+        return res.redirect('/donor/organs?msg=Organ+listing+updated+successfully');
+
+    } catch (error) {
+        console.error("Error in updateOrganListing:", error);
+        return res.status(500).send("Internal Server Error");
+    }
+};
+
+/**
+ * Cancel / withdraw an organ listing.
+ */
+const cancelOrganListing = async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+        const profile_id = req.profile ? req.profile.profile_id : null;
+        const listingId = parseInt(req.params.id, 10);
+        const { donor_password } = req.body;
+
+        const isJson = req.is('json') || req.headers.accept?.includes('application/json');
+
+        if (!donor_password) {
+            if (isJson) return res.status(400).json({ success: false, message: 'Donor password is required to cancel listing.' });
+            return res.redirect('/donor/organs?msg=Donor+password+required');
+        }
+
+        let donorRes;
+        if (profile_id) {
+            donorRes = await db.query(`SELECT * FROM donor_profile WHERE donor_id = $1`, [profile_id]);
+        } else {
+            donorRes = await db.query(`SELECT * FROM donor_profile WHERE user_id = $1`, [user_id]);
+        }
+
+        if (donorRes.rows.length === 0) {
+            if (isJson) return res.status(404).json({ success: false, message: 'Donor profile not found.' });
+            return res.redirect('/donor/login');
+        }
+
+        const donor = donorRes.rows[0];
+
+        // Verify donor password
+        const compare = await comparePassword(donor_password, donor.donor_password);
+        if (!compare) {
+            if (isJson) return res.status(401).json({ success: false, message: 'Incorrect donor profile password.' });
+            return res.redirect('/donor/organs?msg=Incorrect+password');
+        }
+
+        // Fetch listing
+        const listingRes = await db.query(`
+            SELECT d_o.*, ot.organ_name, h.hospital_name 
+            FROM donor_organ d_o
+            JOIN organ_type ot ON d_o.organ_id = ot.organ_id
+            JOIN hospital h ON d_o.verified_hospital_id = h.hospital_id
+            WHERE d_o.do_id = $1 AND d_o.donor_id = $2
+        `, [listingId, donor.donor_id]);
+
+        if (listingRes.rows.length === 0) {
+            if (isJson) return res.status(404).json({ success: false, message: 'Listing not found.' });
+            return res.redirect('/donor/organs?msg=Listing+not+found');
+        }
+
+        const listing = listingRes.rows[0];
+
+        if (listing.verification_status === 'Withdrawn' || listing.availability_status === 'Withdrawn') {
+            if (isJson) return res.status(400).json({ success: false, message: 'This organ listing has already been withdrawn.' });
+            return res.redirect('/donor/organs?msg=Listing+already+withdrawn');
+        }
+
+        // Mark as Withdrawn in donor_organ (both verification_status and availability_status)
+        await db.query(`
+            UPDATE donor_organ
+            SET verification_status = 'Withdrawn',
+                availability_status = 'Withdrawn',
+                donor_consent = 'Withdrawn',
+                is_eligible_for_matching = FALSE
+            WHERE do_id = $1 AND donor_id = $2
+        `, [listingId, donor.donor_id]);
+
+        // Erase notifications for this organ listing from hospital notifications
+        await eraseHospitalNotificationByRequest('donor_organ', listingId);
+
+        // Send donor notification
+        await createNotification({
+            user_id: user_id,
+            title: "Organ Listing Cancelled",
+            message: `Your organ listing for ${listing.organ_name} (Listing ID: ${listingId}) has been cancelled and marked as Withdrawn.`,
+            notification_type: "Profile"
+        });
+
+        if (isJson) {
+            return res.json({
+                success: true,
+                message: `Organ listing for ${listing.organ_name} has been cancelled successfully.`
+            });
+        }
+
+        return res.redirect('/donor/organs?msg=Organ+listing+cancelled+successfully');
+
+    } catch (error) {
+        console.error("Error in cancelOrganListing:", error);
+        if (req.is('json') || req.headers.accept?.includes('application/json')) {
+            return res.status(500).json({ success: false, message: 'Internal Server Error' });
+        }
+        return res.status(500).send("Internal Server Error");
     }
 };
 
@@ -535,7 +1006,11 @@ module.exports = {
     showDonorUpdateProfile,
     updateDonorProfile,
     ShowregisterOrgan,
-    registerOrgan
+    registerOrgan,
+    showDonorOrgans,
+    showUpdateOrganListing,
+    updateOrganListing,
+    cancelOrganListing
 };
 
 // FOR REFERENCE PURPOSES

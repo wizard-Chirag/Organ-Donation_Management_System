@@ -17,14 +17,28 @@
 
     <h2>Profile Information</h2>
 
-    <p><strong>Name :</strong> <%= user.name %></p>
+    <p><strong>Name :</strong>
+        <%= user.name %>
+    </p>
 
-    <p><strong>Hospital :</strong> <%= hospital.hospital_name %></p>
+    <p><strong>Hospital :</strong>
+        <%= hospital.hospital_name %>
+    </p>
 
-    <p><strong>Donor Consent Status :</strong> <%= donor.donor_status %></p>
+    <p><strong>Donor Consent Status :</strong>
+        <%= donor.donor_status %>
+    </p>
 
-    <p><strong>Verification Status :</strong> <%= donor.verification_status %></p>
-
+    <p><strong>Verification Status :</strong>
+        <%= donor.verification_status %>
+    </p>
+ <!-- <li style="list-style: none;"> -->
+            <% if (message) {%>
+                <p style="color: red;">
+                    <%=message%>
+                </p>
+                <%}%>
+        <!-- </li> -->
     <hr>
 
     <h2>Donor Services</h2>

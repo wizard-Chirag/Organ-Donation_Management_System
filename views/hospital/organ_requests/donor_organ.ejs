@@ -405,10 +405,7 @@
                 Used
             </option>
 
-            <option value="Withdrawn"
-                <%= status === "Withdrawn" ? "selected" : "" %>>
-                Withdrawn
-            </option>
+            
 
             <option value="Rejected"
                 <%= status === "Rejected" ? "selected" : "" %>>
@@ -870,9 +867,10 @@
 
 
     function updateActionButtons(verificationStatus) {
-        // verification_status column holds "Pending" for listings awaiting review
-        const canReview = verificationStatus === "Pending";
-
+        const isWithdrawn = verificationStatus === "Withdrawn" || (selectedRequest && selectedRequest.status === "Withdrawn");
+        const canReview = verificationStatus === "Pending" && !isWithdrawn;
+        const reviewSec = document.getElementById("reviewSection");
+        if (reviewSec) reviewSec.style.display = isWithdrawn ? "none" : "";
         approveBtn.disabled = !canReview;
         rejectBtn.disabled = !canReview;
 

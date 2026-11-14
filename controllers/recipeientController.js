@@ -573,7 +573,7 @@ module.exports = {
 
 //             if (profileCookie && profileCookie.id === recipient.rows[0].recipient_id) {
 //                 const hospital = await db.query(
-//                     `select * from hospital where hospital_id = $1`,
+//                     `select * from hospita   l where hospital_id = $1`,
 //                     [recipient.rows[0].registered_hospital_id]
 //                 );
 

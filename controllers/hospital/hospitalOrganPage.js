@@ -1,4 +1,5 @@
 const db = require('../../config/db')
+const { createNotification } = require('../../utils/notificationService')
 const { markNotificationDoneByRequest } = require('../../utils/hospitalNotificationService')
 const {comparePassword} = require('../../utils/passwords')
 const path = require('path')
@@ -24,7 +25,6 @@ const showDonorOrganPage = async (req,res)=>{
                 "Available",
                 "Reserved",
                 "Used",
-                "Withdrawn",
                 "Rejected"
             ];
     
@@ -66,7 +66,9 @@ const showDonorOrganPage = async (req,res)=>{
                 
                 JOIN hospital h
                 ON h.hospital_id = d_o.verified_hospital_id
-                Where 1=1 `
+                Where 1=1 
+                  AND d_o.verification_status != 'Withdrawn'
+                  AND d_o.availability_status != 'Withdrawn' `
     
                 const values =[]
                 if(search){
@@ -189,36 +191,72 @@ const DonorOrganAction = async (req,res) =>{
         await client.query("BEGIN")
 
         const listing = await client.query(
-            `select verification_status from donor_organ
+            `select verification_status, availability_status from donor_organ
             where verified_hospital_id = $1
             AND do_id = $2`,
             [hospital_id,organ_listing_id]
         )
 
-        if(listing.rows.length==0 || listing.rows[0].verification_status != "Pending"){
+        if(listing.rows.length==0 || listing.rows[0].verification_status != "Pending" || listing.rows[0].verification_status == "Withdrawn" || listing.rows[0].availability_status == "Withdrawn"){
 
             await client.query("ROLLBACK");
+            const isWithdrawn = listing.rows[0]?.verification_status === "Withdrawn" || listing.rows[0]?.availability_status === "Withdrawn";
             return res.status(409).json({
                 success: false,
-                message: "Listing not found or already processed."
+                message: isWithdrawn
+                    ? "This organ listing was withdrawn by the donor and cannot be approved or rejected."
+                    : "Listing not found or already processed."
             });
         }
 
-        if(action == "approve"){
+        const organDetails = await client.query(
+            `SELECT d_o.donor_id, d_o.organ_id, dp.user_id, ot.organ_name, h.hospital_name
+             FROM donor_organ d_o
+             JOIN donor_profile dp ON d_o.donor_id = dp.donor_id
+             JOIN organ_type ot ON d_o.organ_id = ot.organ_id
+             JOIN hospital h ON h.hospital_id = d_o.verified_hospital_id
+             WHERE d_o.do_id = $1`,
+            [organ_listing_id]
+        );
+
+        if (action == "approve") {
             await client.query(
-                `update donor_organ set verification_status = $1
-                where verified_hospital_id = $2
-                AND do_id = $3`,
-                ['Approved',hospital_id,organ_listing_id]
-            )
-        }
-        else{
+                `UPDATE donor_organ 
+                 SET verification_status = 'Approved', 
+                     is_eligible_for_matching = TRUE,
+                     availability_status = 'Available'
+                 WHERE verified_hospital_id = $1 AND do_id = $2`,
+                [hospital_id, organ_listing_id]
+            );
+
+            if (organDetails.rows.length > 0) {
+                const row = organDetails.rows[0];
+                await createNotification({
+                    user_id: row.user_id,
+                    title: "Donor Organ Listing Approved",
+                    message: `Your organ listing for ${row.organ_name} (Listing ID: ${organ_listing_id}) has been approved by ${row.hospital_name}. It is now eligible for matching.`,
+                    notification_type: "Match"
+                });
+            }
+        } else {
             await client.query(
-                `update donor_organ set verification_status = $1, rejection_reason = $2
-                where verified_hospital_id = $3
-                AND do_id = $4`,
-                ['Rejected',reason,hospital_id,organ_listing_id]
-            )
+                `UPDATE donor_organ 
+                 SET verification_status = 'Rejected', 
+                     rejection_reason = $1,
+                     is_eligible_for_matching = FALSE
+                 WHERE verified_hospital_id = $2 AND do_id = $3`,
+                [reason, hospital_id, organ_listing_id]
+            );
+
+            if (organDetails.rows.length > 0) {
+                const row = organDetails.rows[0];
+                await createNotification({
+                    user_id: row.user_id,
+                    title: "Donor Organ Listing Rejected",
+                    message: `Your organ listing for ${row.organ_name} (Listing ID: ${organ_listing_id}) has been rejected by ${row.hospital_name}. Reason: ${reason}. You are entitled to list this organ again.`,
+                    notification_type: "Profile"
+                });
+            }
         }
 
         await client.query("COMMIT");

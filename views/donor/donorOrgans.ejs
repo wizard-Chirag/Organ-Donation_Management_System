@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Listed Organs | Donor Portal</title>
+    <style>
+        :root {
+            --bg-dark: #0b1120;
+            --card-bg: rgba(15, 23, 42, 0.75);
+            --card-border: rgba(148, 163, 184, 0.15);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --modal-bg: rgba(15, 23, 42, 0.92);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 30px 20px;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(13, 148, 136, 0.1) 0px, transparent 50%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Top Header */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .header-title h1 {
+            font-size: 26px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.7);
+            color: #e2e8f0;
+            border-color: rgba(148, 163, 184, 0.2);
+        }
+        .btn-secondary:hover {
+            background: rgba(51, 65, 85, 0.8);
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .btn-danger:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .btn-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+        .btn-warning:hover {
+            background: #f59e0b;
+            color: #fff;
+        }
+
+        .btn-disabled {
+            background: rgba(51, 65, 85, 0.4);
+            color: #64748b;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        /* Banner Message */
+        .alert-banner {
+            background: rgba(37, 99, 235, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            padding: 12px 18px;
+            margin-bottom: 22px;
+            color: #93c5fd;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Filter & Search Bar */
+        .filter-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 18px 22px;
+            margin-bottom: 26px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .search-box {
+            flex: 1 1 260px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 11px 14px;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+        }
+
+        .filter-select {
+            padding: 11px 14px;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+            min-width: 160px;
+            cursor: pointer;
+        }
+
+        .filter-select option {
+            background: #0f172a;
+            color: #fff;
+        }
+
+        /* Organ Grid / Cards */
+        .organ-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+
+        .organ-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 22px;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .organ-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .organ-name-badge {
+            font-size: 19px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .organ-id-pill {
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(148, 163, 184, 0.15);
+            color: #cbd5e1;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        /* Status Pills */
+        .status-badge {
+            padding: 4px 11px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-approved {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-rejected {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status-withdrawn {
+            background: rgba(100, 116, 139, 0.2);
+            color: #94a3b8;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .matching-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 6px;
+            margin-bottom: 14px;
+        }
+        .matching-eligible {
+            background: rgba(16, 185, 129, 0.12);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+        .matching-not-eligible {
+            background: rgba(148, 163, 184, 0.1);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .card-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 13px;
+            color: #cbd5e1;
+            margin-bottom: 18px;
+        }
+
+        .card-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-detail-label {
+            color: var(--text-muted);
+        }
+
+        .card-detail-val {
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .retest-tag {
+            background: rgba(124, 58, 237, 0.15);
+            color: #c4b5fd;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 14px;
+            border-top: 1px solid var(--card-border);
+        }
+
+        .click-hint {
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Glassmorphism Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(2, 6, 23, 0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .glass-modal {
+            width: 100%;
+            max-width: 860px;
+            max-height: 92vh;
+            overflow-y: auto;
+            background: var(--modal-bg);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.7);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 28px;
+            line-height: 1;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .modal-section {
+            margin-bottom: 24px;
+            background: rgba(2, 6, 23, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 12px;
+            padding: 18px 20px;
+        }
+
+        .modal-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #93c5fd;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .modal-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .modal-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e2e8f0;
+            word-break: break-word;
+        }
+
+        .rejection-box {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 12px;
+            color: #fca5a5;
+            font-size: 13px;
+        }
+
+        .modal-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-border);
+            flex-wrap: wrap;
+        }
+
+        .action-note {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-right: auto;
+        }
+
+        /* Password Confirm Modal */
+        .confirm-modal {
+            max-width: 460px;
+            padding: 26px;
+        }
+
+        .confirm-modal h3 {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .confirm-modal p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 20px;
+            outline: none;
+        }
+        .password-input:focus {
+            border-color: var(--danger);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            padding: 60px 20px;
+            text-align: center;
+            background: var(--card-bg);
+            border: 1px dashed var(--card-border);
+            border-radius: 16px;
+            color: var(--text-muted);
+        }
+        .empty-state h3 {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Top Header -->
+    <header class="page-header">
+        <div class="header-title">
+            <h1>
+                My Registered Organs
+            </h1>
+            <p>
+                Donor ID: <strong><%= donor.donor_id %></strong> &bull; 
+                <%= user.name %> (<%= user.gender || 'Donor' %>, <%= user.bloodgroup ? 'Blood Group: ' + user.bloodgroup : '' %>)
+            </p>
+        </div>
+        <div class="header-actions">
+            <a href="/donor/register_organ" class="btn btn-primary">
+                + Register New Organ
+            </a>
+            <a href="/donor/dashboard" class="btn btn-secondary">
+                &larr; Donor Dashboard
+            </a>
+        </div>
+    </header>
+
+    <!-- Message Alert Banner if any -->
+    <% if (typeof message !== 'undefined' && message) { %>
+        <div class="alert-banner">
+            <span><%= message %></span>
+            <button onclick="this.parentElement.remove()" style="background:none; border:none; color:#93c5fd; font-size:18px; cursor:pointer;">&times;</button>
+        </div>
+    <% } %>
+
+    <!-- Filter & Search Controls -->
+    <div class="filter-section">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by organ, hospital, or listing ID..." oninput="applyFilters()">
+        </div>
+
+        <select id="organFilter" class="filter-select" onchange="applyFilters()">
+            <option value="">All Organs</option>
+            <% organs.forEach(org => { %>
+                <option value="<%= org.organ_name.toLowerCase() %>"><%= org.organ_name %></option>
+            <% }); %>
+        </select>
+
+        <select id="statusFilter" class="filter-select" onchange="applyFilters()">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending Approval</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="withdrawn">Withdrawn</option>
+        </select>
+
+        <select id="genderFilter" class="filter-select" onchange="applyFilters()">
+            <option value="">All Genders</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+        </select>
+
+        <button class="btn btn-secondary btn-sm" onclick="resetFilters()">Reset</button>
+    </div>
+
+    <!-- Organ Cards Grid -->
+    <div class="organ-grid" id="organGrid">
+        <% if (listings && listings.length > 0) { %>
+            <% listings.forEach(function(item) { 
+                const isWithdrawn = item.verification_status === 'Withdrawn' || item.availability_status === 'Withdrawn' || item.donor_consent === 'Withdrawn';
+                const isPending = item.verification_status === 'Pending' && !isWithdrawn;
+                const isApproved = item.verification_status === 'Approved' && !isWithdrawn;
+                const isRejected = item.verification_status === 'Rejected' && !isWithdrawn;
+
+                let statusClass = 'status-pending';
+                let displayStatus = item.verification_status;
+                if (isWithdrawn) {
+                    statusClass = 'status-withdrawn';
+                    displayStatus = 'Withdrawn';
+                } else if (isApproved) {
+                    statusClass = 'status-approved';
+                } else if (isRejected) {
+                    statusClass = 'status-rejected';
+                }
+
+                const testDateStr = item.verified_at ? new Date(item.verified_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+                const retestDateStr = item.retest_date ? new Date(item.retest_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+            %>
+                <div class="organ-card" 
+                     id="organ-card-<%= item.do_id %>"
+                     data-id="<%= item.do_id %>"
+                     data-organ="<%= item.organ_name.toLowerCase() %>"
+                     data-status="<%= isWithdrawn ? 'withdrawn' : item.verification_status.toLowerCase() %>"
+                     data-gender="<%= (item.donor_gender || '').toLowerCase() %>"
+                     data-text="<%= (item.organ_name + ' ' + item.hospital_name + ' ' + item.do_id).toLowerCase() %>"
+                     onclick="handleCardClick(this)">
+                    
+                    <div>
+                        <div class="card-top">
+                            <div class="organ-name-badge">
+                                <span><%= item.organ_name %></span>
+                                <br><br><span style="font-size: small;">Listing ID:</span>
+                                <span class="organ-id-pill">#<%= item.do_id %></span>
+                            </div>
+                            <span class="status-badge <%= statusClass %>"><%= displayStatus %></span>
+                        </div>
+
+                        <!-- Eligibility pill -->
+                        <% if (isWithdrawn) { %>
+                            <div class="matching-pill matching-not-eligible" style="color:#f87171; border-color:rgba(239,68,68,0.3);">
+                                &bull; Withdrawn (Unavailable & Unreachable)
+                            </div>
+                        <% } else if (item.is_eligible_for_matching) { %>
+                            <div class="matching-pill matching-eligible">
+                                &bull; Eligible for Matching
+                            </div>
+                        <% } else { %>
+                            <div class="matching-pill matching-not-eligible">
+                                &bull; <%= isPending ? 'Pending Hospital Verification' : 'Not Eligible for Matching' %>
+                            </div>
+                        <% } %>
+
+                        <div class="card-details">
+                            <div class="card-detail-row">
+                                <span class="card-detail-label">Testing Hospital:</span>
+                                <span class="card-detail-val"><%= item.hospital_name %></span>
+                            </div>
+                            <div class="card-detail-row">
+                                <span class="card-detail-label">Test Date:</span>
+                                <span class="card-detail-val"><%= testDateStr %></span>
+                            </div>
+                            <div class="card-detail-row">
+                                <span class="card-detail-label">Re-Testing Date:</span>
+                                <span class="retest-tag"><%= retestDateStr %></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <span style="font-size: 11px; color: var(--text-muted);">
+                            Registered: <%= new Date(item.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %>
+                        </span>
+                        <span class="click-hint">
+                            View Details &rarr;
+                        </span>
+                    </div>
+
+                </div>
+            <% }); %>
+        <% } else { %>
+            <div class="empty-state">
+                <h3>No organs registered yet</h3>
+                <p>You haven't listed any organs for donation yet. Click below to register your first organ.</p>
+                <br>
+                <a href="/donor/register_organ" class="btn btn-primary">+ Register New Organ</a>
+            </div>
+        <% } %>
+    </div>
+
+</div>
+
+<!-- GLASSMORPHED DETAILS MODAL -->
+<div class="modal-overlay" id="detailsModalOverlay" onclick="handleOverlayClick(event)">
+    <div class="glass-modal" id="detailsModal">
+        <div class="modal-header">
+            <div>
+                <h2 id="modalOrganTitle">
+                    Organ Details
+                </h2>
+                <div id="modalSubtitle" style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+                    Listing Information & Verification Overview
+                </div>
+            </div>
+            <button class="close-btn" onclick="closeDetailsModal()">&times;</button>
+        </div>
+
+        <!-- Section 1: Verification & Matching Status -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                Verification & Availability Status
+            </div>
+            <div class="modal-grid">
+                <div class="modal-field">
+                    <span class="modal-label">Verification Status</span>
+                    <span class="modal-value" id="modalVerificationStatus">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Matching Eligibility</span>
+                    <span class="modal-value" id="modalMatchingEligibility">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Availability Status</span>
+                    <span class="modal-value" id="modalAvailabilityStatus">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Listing Registration Date</span>
+                    <span class="modal-value" id="modalRegisteredAt">-</span>
+                </div>
+            </div>
+            <div id="modalRejectionReasonBox" class="rejection-box" style="display:none;">
+                <strong>Hospital Rejection Reason:</strong>
+                <span id="modalRejectionReasonText"></span>
+            </div>
+        </div>
+
+        <!-- Section 2: Hospital Testing & Re-Testing -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                Hospital Testing & Re-Testing Schedule
+            </div>
+            <div class="modal-grid">
+                <div class="modal-field">
+                    <span class="modal-label">Testing Hospital</span>
+                    <span class="modal-value" id="modalHospitalName">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Hospital Location</span>
+                    <span class="modal-value" id="modalHospitalCity">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Date of Testing (verified_at)</span>
+                    <span class="modal-value" id="modalTestDate">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Re-Testing Date (1 Month Interval)</span>
+                    <span class="modal-value" id="modalRetestDate" style="color:#c4b5fd;">-</span>
+                </div>
+                <div class="modal-field" style="grid-column: 1 / -1;">
+                    <span class="modal-label">Medical Testing Document</span>
+                    <span class="modal-value" id="modalDocLink">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Donor Primary Details -->
+        <div class="modal-section">
+            <div class="modal-section-title">
+                Donor Primary Information
+            </div>
+            <div class="modal-grid">
+                <div class="modal-field">
+                    <span class="modal-label">Donor Full Name</span>
+                    <span class="modal-value" id="modalDonorName">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Donor / User ID</span>
+                    <span class="modal-value" id="modalDonorIds">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Gender</span>
+                    <span class="modal-value" id="modalDonorGender">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Blood Group</span>
+                    <span class="modal-value" id="modalDonorBlood">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Contact Phone</span>
+                    <span class="modal-value" id="modalDonorPhone">-</span>
+                </div>
+                <div class="modal-field">
+                    <span class="modal-label">Contact Email</span>
+                    <span class="modal-value" id="modalDonorEmail">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-actions">
+            <span class="action-note" id="modalActionNote"></span>
+
+            <!-- Update button: only enabled before approval -->
+            <a href="#" id="modalUpdateBtn" class="btn btn-warning btn-sm">
+                Update Organ Listing
+            </a>
+
+            <!-- Cancel button: cancels organ listing with password prompt -->
+            <button id="modalCancelBtn" class="btn btn-danger btn-sm" onclick="promptCancelListing()">
+                Cancel Organ Listing
+            </button>
+
+            <button class="btn btn-secondary btn-sm" onclick="closeDetailsModal()">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- PASSWORD CONFIRMATION MODAL FOR CANCELLATION -->
+<div class="modal-overlay" id="cancelConfirmOverlay" onclick="handleCancelOverlayClick(event)">
+    <div class="glass-modal confirm-modal" id="cancelConfirmModal">
+        <h3>Confirm Organ Cancellation</h3>
+        <p>
+            Are you sure you want to withdraw and cancel this organ listing? 
+            Once cancelled, the organ will be marked as <strong>Withdrawn</strong> and pending hospital notifications for it will be erased.
+        </p>
+
+        <form id="cancelListingForm" onsubmit="submitCancelListing(event)">
+            <label for="cancelPasswordInput" style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:6px;">
+                Enter Donor Profile Password to Confirm:
+            </label>
+            <input type="password" id="cancelPasswordInput" class="password-input" placeholder="Donor profile password" required>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeCancelConfirmModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger btn-sm" id="confirmCancelSubmitBtn">Confirm & Withdraw</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Embedded JSON Data payload -->
+<script type="application/json" id="donorListingsJson">
+    <%- JSON.stringify(listings || []) %>
+</script>
+
+<script>
+    const donorListingsRaw = document.getElementById('donorListingsJson');
+    const donorListingsData = donorListingsRaw ? JSON.parse(donorListingsRaw.textContent || '[]') : [];
+    const donorListingsMap = {};
+    donorListingsData.forEach(function(item) {
+        donorListingsMap[item.do_id] = item;
+    });
+
+    function handleCardClick(cardEl) {
+        if (!cardEl) return;
+        const id = cardEl.getAttribute('data-id');
+        if (id) {
+            openDetailsModalById(id);
+        }
+    }
+
+    function openDetailsModalById(id) {
+        const item = donorListingsMap[id];
+        if (item) {
+            openDetailsModal(item);
+        }
+    }
+
+    let currentSelectedListing = null;
+
+    function openDetailsModal(item) {
+        currentSelectedListing = item;
+
+        const isWithdrawn = item.verification_status === 'Withdrawn' || item.availability_status === 'Withdrawn' || item.donor_consent === 'Withdrawn';
+        const isPending = item.verification_status === 'Pending' && !isWithdrawn;
+        const isApproved = item.verification_status === 'Approved' && !isWithdrawn;
+        const isRejected = item.verification_status === 'Rejected' && !isWithdrawn;
+
+        // Title
+        document.getElementById('modalOrganTitle').innerHTML = `${item.organ_name} <span class="organ-id-pill">Listing #${item.do_id}</span>`;
+        document.getElementById('modalSubtitle').innerText = `Registered on ${new Date(item.registered_at).toLocaleString()}`;
+
+        // Section 1
+        const verifEl = document.getElementById('modalVerificationStatus');
+        let statusBadgeClass = 'status-pending';
+        let statusText = item.verification_status;
+        if (isWithdrawn) { statusBadgeClass = 'status-withdrawn'; statusText = 'Withdrawn'; }
+        else if (isApproved) { statusBadgeClass = 'status-approved'; }
+        else if (isRejected) { statusBadgeClass = 'status-rejected'; }
+        verifEl.innerHTML = `<span class="status-badge ${statusBadgeClass}">${statusText}</span>`;
+
+        const matchEl = document.getElementById('modalMatchingEligibility');
+        if (isWithdrawn) {
+            matchEl.innerHTML = `<span style="color:#f87171; font-weight:700;">&bull; Withdrawn (Unavailable & Unreachable)</span>`;
+            document.getElementById('modalAvailabilityStatus').innerText = 'Withdrawn (Unavailable & Unreachable)';
+            document.getElementById('modalAvailabilityStatus').style.color = '#f87171';
+        } else if (item.is_eligible_for_matching) {
+            matchEl.innerHTML = `<span style="color:#34d399; font-weight:700;">&bull; Eligible for Matching</span>`;
+            document.getElementById('modalAvailabilityStatus').innerText = item.availability_status || 'Available';
+            document.getElementById('modalAvailabilityStatus').style.color = '#34d399';
+        } else {
+            matchEl.innerHTML = `<span style="color:#94a3b8;">&bull; ${isPending ? 'Pending Approval' : 'Not Eligible'}</span>`;
+            document.getElementById('modalAvailabilityStatus').innerText = item.availability_status || 'Available';
+            document.getElementById('modalAvailabilityStatus').style.color = '#e5e7eb';
+        }
+
+        document.getElementById('modalRegisteredAt').innerText = new Date(item.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        // Rejection reason
+        const rejBox = document.getElementById('modalRejectionReasonBox');
+        if (isRejected && item.rejection_reason) {
+            rejBox.style.display = 'block';
+            document.getElementById('modalRejectionReasonText').innerText = item.rejection_reason;
+        } else {
+            rejBox.style.display = 'none';
+        }
+
+        // Section 2: Hospital & Dates
+        document.getElementById('modalHospitalName').innerText = `${item.hospital_name} (${item.verified_hospital_id})`;
+        document.getElementById('modalHospitalCity').innerText = item.hospital_city || 'Not specified';
+        
+        const testDateStr = item.verified_at ? new Date(item.verified_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A';
+        document.getElementById('modalTestDate').innerText = testDateStr;
+
+        const retestDateStr = item.retest_date ? new Date(item.retest_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A';
+        document.getElementById('modalRetestDate').innerHTML = `<span class="retest-tag">${retestDateStr}</span> (1 Month After Previous Test)`;
+
+        if (item.medical_document_path) {
+            document.getElementById('modalDocLink').innerHTML = `<a href="/${item.medical_document_path}" target="_blank" style="color:#60a5fa; text-decoration:underline; font-weight:600;">View Medical Report / Document &rarr;</a>`;
+        } else {
+            document.getElementById('modalDocLink').innerText = 'No document uploaded';
+        }
+
+        // Section 3: Donor Details
+        document.getElementById('modalDonorName').innerText = item.donor_name || 'Donor';
+        document.getElementById('modalDonorIds').innerText = `Donor ID: ${item.donor_id} | User ID: ${item.user_id}`;
+        document.getElementById('modalDonorGender').innerText = (item.donor_gender ? item.donor_gender.toUpperCase() : 'N/A');
+        document.getElementById('modalDonorBlood').innerText = item.bloodgroup || 'N/A';
+        document.getElementById('modalDonorPhone').innerText = item.donor_phone || 'N/A';
+        document.getElementById('modalDonorEmail').innerText = item.donor_email || 'N/A';
+
+        // Action Buttons Logic
+        const updateBtn = document.getElementById('modalUpdateBtn');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+        const noteEl = document.getElementById('modalActionNote');
+
+        if (isWithdrawn) {
+            // Once withdrawn, absolutely no further update or cancel options are provided
+            updateBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            noteEl.innerHTML = '<span style="color:#f87171; font-weight:600;">This organ listing has been withdrawn by you. It is marked as unavailable and unreachable; no further actions or options are available.</span>';
+        } else if (isPending) {
+            updateBtn.className = 'btn btn-warning btn-sm';
+            updateBtn.href = `/donor/organ/${item.do_id}/edit`;
+            updateBtn.style.display = 'inline-flex';
+            cancelBtn.style.display = 'inline-flex';
+            noteEl.innerText = 'Organ is pending verification. You may update details before hospital action.';
+        } else if (isApproved) {
+            updateBtn.className = 'btn btn-disabled btn-sm';
+            updateBtn.href = '#';
+            updateBtn.style.display = 'none';
+            cancelBtn.style.display = 'inline-flex';
+            noteEl.innerText = 'Organ approved by hospital. Further updates are locked.';
+        } else if (isRejected) {
+            updateBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            noteEl.innerText = 'Listing rejected. You are entitled to register this organ again.';
+        } else {
+            updateBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            noteEl.innerText = '';
+        }
+
+        document.getElementById('detailsModalOverlay').classList.add('active');
+    }
+
+    function closeDetailsModal() {
+        document.getElementById('detailsModalOverlay').classList.remove('active');
+    }
+
+    function handleOverlayClick(event) {
+        if (event.target.id === 'detailsModalOverlay') {
+            closeDetailsModal();
+        }
+    }
+
+    // Cancel prompt
+    function promptCancelListing() {
+        if (!currentSelectedListing) return;
+        document.getElementById('cancelPasswordInput').value = '';
+        document.getElementById('cancelConfirmOverlay').classList.add('active');
+    }
+
+    function closeCancelConfirmModal() {
+        document.getElementById('cancelConfirmOverlay').classList.remove('active');
+    }
+
+    function handleCancelOverlayClick(event) {
+        if (event.target.id === 'cancelConfirmOverlay') {
+            closeCancelConfirmModal();
+        }
+    }
+
+    async function submitCancelListing(event) {
+        event.preventDefault();
+        if (!currentSelectedListing) return;
+
+        const password = document.getElementById('cancelPasswordInput').value;
+        const submitBtn = document.getElementById('confirmCancelSubmitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Cancelling...';
+
+        try {
+            const response = await fetch(`/donor/organ/${currentSelectedListing.do_id}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ donor_password: password })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Success: ' + result.message);
+                window.location.reload();
+            } else {
+                alert('Error: ' + (result.message || 'Failed to cancel organ listing'));
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Confirm & Withdraw';
+            }
+        } catch (err) {
+            console.error('Cancellation error:', err);
+            alert('Server error occurred during cancellation.');
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Confirm & Withdraw';
+        }
+    }
+
+    // Filters
+    function applyFilters() {
+        const searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
+        const organVal = document.getElementById('organFilter').value;
+        const statusVal = document.getElementById('statusFilter').value;
+        const genderVal = document.getElementById('genderFilter').value;
+
+        const cards = document.querySelectorAll('.organ-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const organ = card.getAttribute('data-organ');
+            const status = card.getAttribute('data-status');
+            const gender = card.getAttribute('data-gender');
+            const text = card.getAttribute('data-text');
+
+            const matchesSearch = !searchVal || text.includes(searchVal);
+            const matchesOrgan = !organVal || organ === organVal;
+            const matchesStatus = !statusVal || status === statusVal;
+            const matchesGender = !genderVal || gender === genderVal;
+
+            if (matchesSearch && matchesOrgan && matchesStatus && matchesGender) {
+                card.style.display = 'flex';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function resetFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('organFilter').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('genderFilter').value = '';
+        applyFilters();
+    }
+</script>
+
+</body>
+</html>
