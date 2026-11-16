@@ -35,6 +35,16 @@ const initHospitalNotificationTable = async () => {
             -- Ensure verify_document_var enum supports 'Withdrawn'
             ALTER TYPE verify_document_var ADD VALUE IF NOT EXISTS 'Withdrawn';
 
+            -- Ensure organ_request table supports full lifecycle & renewal priority
+            ALTER TABLE organ_request ADD COLUMN IF NOT EXISTS renewal_priority_bonus INTEGER DEFAULT 0;
+            ALTER TABLE organ_request ADD COLUMN IF NOT EXISTS is_eligible_for_matching BOOLEAN DEFAULT FALSE;
+            ALTER TABLE organ_request DROP CONSTRAINT IF EXISTS organ_request_criticality_score_fkey;
+            ALTER TABLE organ_request DROP CONSTRAINT IF EXISTS organ_request_request_count_check;
+            ALTER TABLE organ_request ADD CONSTRAINT organ_request_request_count_check CHECK (request_count >= 0);
+            ALTER TABLE organ_request DROP CONSTRAINT IF EXISTS organ_request_verification_status_check;
+            ALTER TABLE organ_request ADD CONSTRAINT organ_request_verification_status_check 
+                CHECK (verification_status IN ('Pending','Approved','Rejected','Renewal Required','Withdrawn'));
+
             CREATE INDEX IF NOT EXISTS idx_notif_hosp_id ON notifications_hospital(hospital_id);
             CREATE INDEX IF NOT EXISTS idx_notif_hosp_read ON notifications_hospital(hospital_id, is_read);
         `);
@@ -238,6 +248,16 @@ const syncHospitalNotifications = async (hospital_id) => {
             WHERE nh.request_type = 'donor_organ'
               AND nh.reference_id = d_o.do_id
               AND (d_o.verification_status = 'Withdrawn' OR d_o.availability_status = 'Withdrawn')
+              AND nh.hospital_id = $1
+        `, [hospital_id]);
+
+        // Erase any hospital notifications for withdrawn or expired organ requests
+        await db.query(`
+            DELETE FROM notifications_hospital nh
+            USING organ_request orq
+            WHERE nh.request_type = 'organ_request'
+              AND nh.reference_id = orq.or_id
+              AND (orq.verification_status IN ('Withdrawn', 'Renewal Required') OR orq.request_status IN ('Withdrawn', 'Expired'))
               AND nh.hospital_id = $1
         `, [hospital_id]);
 

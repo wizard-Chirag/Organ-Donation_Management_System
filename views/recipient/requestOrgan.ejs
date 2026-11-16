@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= (typeof isRenewal !== 'undefined' && isRenewal) ? 'Renew Organ Request | ODTMS' : 'Request New Organ | ODTMS' %></title>
+    <style>
+        :root {
+            --bg-dark: #0b1120;
+            --card-bg: rgba(15, 23, 42, 0.85);
+            --card-border: rgba(148, 163, 184, 0.2);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(13, 148, 136, 0.1) 0px, transparent 50%);
+        }
+
+        .organ-container {
+            max-width: 760px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 35px 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            transition: color 0.15s;
+        }
+        .back-link:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+
+        .page-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .bonus-banner {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #fde68a;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message {
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .error-message {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .form-section {
+            margin-bottom: 28px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        }
+        .form-section:last-of-type {
+            border-bottom: none;
+        }
+
+        .form-section h2 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 7px;
+        }
+
+        select, input[type="text"], input[type="password"], input[type="file"] {
+            width: 100%;
+            padding: 12px 14px;
+            background: #111c30;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #f8fafc;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        select:focus, input:focus {
+            border-color: var(--primary);
+        }
+
+        small {
+            display: block;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .consent-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            padding: 14px 16px;
+            border-radius: 8px;
+        }
+        .consent-box input[type="checkbox"] {
+            margin-top: 3px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+        .consent-box label {
+            margin-bottom: 0;
+            font-weight: 400;
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .form-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 30px;
+        }
+
+        button[type="submit"] {
+            flex: 1;
+            padding: 13px 24px;
+            border-radius: 8px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+            transition: background 0.15s;
+        }
+        button[type="submit"]:hover {
+            background: var(--primary-hover);
+        }
+        button[type="submit"].btn-warning {
+            background: #d97706;
+            box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+        }
+        button[type="submit"].btn-warning:hover {
+            background: #b45309;
+        }
+
+        .cancel-link {
+            padding: 13px 20px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .cancel-link:hover {
+            background: rgba(51, 65, 85, 0.8);
+            color: white;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+
+<main class="organ-container">
+
+    <header class="page-header">
+        <a href="<%= (typeof isRenewal !== 'undefined' && isRenewal) ? '/recipient/organs' : '/recipient/dashboard' %>" class="back-link">
+            &larr; Back to <%= (typeof isRenewal !== 'undefined' && isRenewal) ? 'My Requested Organs' : 'Recipient Dashboard' %>
+        </a>
+
+        <h1><%= (typeof isRenewal !== 'undefined' && isRenewal) ? 'Renew Organ Request' : 'Request a New Organ' %></h1>
+
+        <p>
+            <%= (typeof isRenewal !== 'undefined' && isRenewal) 
+                ? 'Your previous request expired after 3 days without hospital action. Renewing this request updates details and increases your priority score by +5 points.' 
+                : 'Submit your organ requirement along with certified medical diagnosis documents for hospital approval and priority ranking.' %>
+        </p>
+    </header>
+
+    <% if (typeof isRenewal !== 'undefined' && isRenewal) { %>
+        <div class="bonus-banner">
+            ⚡ <strong>Priority Boost Active:</strong> Renewing this request will grant an immediate <strong>+5 bonus</strong> to your total priority score (Cycle <%= (typeof organRequest !== 'undefined' ? organRequest.request_count + 1 : 1) %>).
+        </div>
+    <% } %>
+
+    <!-- Backend message alert if any -->
+    <% if (typeof message !== "undefined" && message) { %>
+        <div class="message error-message" role="alert">
+            <%= message %>
+        </div>
+    <% } %>
+
+    <% if (!isRenewal && organs.length === 0) { %>
+        <div style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:20px; text-align:center;">
+            <h3 style="color:#fca5a5; margin-bottom:8px;">No Organs Available to Request</h3>
+            <p style="color:#cbd5e1; font-size:14px; margin-bottom:15px;">
+                You currently have active requests (Pending or Approved) for all available organ types. You cannot request an organ again until your current request is rejected, auto-expired, or withdrawn.
+            </p>
+            <a href="/recipient/organs" class="cancel-link" style="display:inline-block;">View My Requested Organs</a>
+        </div>
+    <% } else { %>
+
+    <form
+        action="<%= (typeof isRenewal !== 'undefined' && isRenewal && typeof organRequest !== 'undefined') ? '/recipient/organ/' + organRequest.or_id + '/renew' : '/recipient/organ' %>"
+        method="POST"
+        enctype="multipart/form-data"
+        id="organRequestForm"
+    >
+
+        <!-- 1. Organ Information -->
+        <section class="form-section">
+            <h2>1. Organ Selection</h2>
+
+            <div class="form-group">
+                <label for="organ_id">Organ Required</label>
+
+                <select id="organ_id" name="organ_id" required <%= (typeof isRenewal !== 'undefined' && isRenewal) ? 'readonly' : '' %>>
+                    <% if (!isRenewal) { %>
+                        <option value="">Select an organ</option>
+                    <% } %>
+
+                    <% organs.forEach(organ => { %>
+                        <option value="<%= organ.organ_id %>" <%= (typeof isRenewal !== 'undefined' && isRenewal && typeof organRequest !== 'undefined' && organRequest.organ_id == organ.organ_id) ? 'selected' : '' %>>
+                            <%= organ.organ_name %>
+                        </option>
+                    <% }) %>
+                </select>
+                <small>
+                    <%= (typeof isRenewal !== 'undefined' && isRenewal) 
+                        ? 'The organ type is locked to the original request being renewed.' 
+                        : 'Only organs for which you do not have an active pending or approved request are shown.' %>
+                </small>
+            </div>
+        </section>
+
+        <!-- 2. Medical Verification Hospital -->
+        <section class="form-section">
+            <h2>2. Verification Hospital</h2>
+
+            <div class="form-group">
+                <label for="hospital_id">Hospital for Verification</label>
+
+                <select id="hospital_id" name="hospital_id" required>
+                    <option value="">Select a hospital to review your request</option>
+                    <% hospitals.forEach(hospital => { %>
+                        <option value="<%= hospital.hospital_id %>" <%= (typeof isRenewal !== 'undefined' && isRenewal && typeof organRequest !== 'undefined' && organRequest.verified_hospital_id == hospital.hospital_id) ? 'selected' : '' %>>
+                            <%= hospital.hospital_name %> <%= hospital.city ? '— ' + hospital.city : '' %>
+                        </option>
+                    <% }) %>
+                </select>
+                <small>Select the hospital that will review your diagnosis and medical proof.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="medical_report">Medical Diagnosis / Proof Document</label>
+                <input
+                    type="file"
+                    id="medical_report"
+                    name="medical_report"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    <%= (typeof isRenewal !== 'undefined' && isRenewal) ? '' : 'required' %>
+                >
+                <small>
+                    Accepted formats: PDF, JPG, JPEG, PNG (Max 5 MB).
+                    <% if (typeof isRenewal !== 'undefined' && isRenewal && typeof organRequest !== 'undefined' && organRequest.medical_proof_path) { %>
+                        <br><span style="color:#60a5fa;">Existing Document: <a href="/<%= organRequest.medical_proof_path %>" target="_blank" style="color:#93c5fd; text-decoration:underline;">View uploaded report</a> (upload new file to replace)</span>
+                    <% } %>
+                </small>
+            </div>
+        </section>
+
+        <!-- 3. Profile Password Verification -->
+        <section class="form-section">
+            <h2>3. Recipient Security Verification</h2>
+
+            <div class="form-group">
+                <label for="recipient_password">Recipient Profile Password</label>
+                <input
+                    type="password"
+                    id="recipient_password"
+                    name="recipient_password"
+                    placeholder="Enter your recipient profile password"
+                    autocomplete="current-password"
+                    required
+                >
+                <small>Enter your recipient profile password to authorize this <%= (typeof isRenewal !== 'undefined' && isRenewal) ? 'renewal' : 'request' %>.</small>
+            </div>
+        </section>
+
+        <!-- 4. Consent -->
+        <section class="form-section">
+            <h2>4. Patient Consent & Undertaking</h2>
+
+            <div class="consent-box">
+                <input
+                    type="checkbox"
+                    id="recipient_consent"
+                    name="recipient_consent"
+                    value="yes"
+                    required
+                >
+                <label for="recipient_consent">
+                    I confirm that I am requesting this organ for matching and transplantation based on certified medical necessity. I authorize the hospital to review and verify my medical records, and I understand that matching priority is subject to hospital verification, daily waiting duration (+2 pts/day), and priority renewal bonuses.
+                </label>
+            </div>
+        </section>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <button type="submit" id="submitButton" class="<%= (typeof isRenewal !== 'undefined' && isRenewal) ? 'btn-warning' : '' %>">
+                <%= (typeof isRenewal !== 'undefined' && isRenewal) ? 'Renew Organ Request (+5 Priority Score)' : 'Submit Organ Request' %>
+            </button>
+
+            <a href="/recipient/organs" class="cancel-link">
+                Cancel
+            </a>
+        </div>
+
+        <p class="footer-note">
+            Organ requests are verified by the assigned hospital. If no action is taken within 3 days, requests auto-expire and seek renewal with priority score bonuses.
+        </p>
+
+    </form>
+    <% } %>
+
+</main>
+
+<script>
+    const form = document.getElementById("organRequestForm");
+    const fileInput = document.getElementById("medical_report");
+    const submitBtn = document.getElementById("submitButton");
+
+    if (form) {
+        form.addEventListener("submit", function(event) {
+            const isRenewal = <%= (typeof isRenewal !== 'undefined' && isRenewal) ? 'true' : 'false' %>;
+
+            if (!isRenewal && fileInput && fileInput.files.length === 0) {
+                event.preventDefault();
+                alert("Please select and upload your medical diagnosis document.");
+                return;
+            }
+
+            if (fileInput && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const maxSize = 5 * 1024 * 1024;
+                const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+
+                if (file.size > maxSize) {
+                    event.preventDefault();
+                    alert("The medical document must not exceed 5 MB.");
+                    return;
+                }
+
+                if (!allowedTypes.includes(file.type)) {
+                    event.preventDefault();
+                    alert("Upload only a valid PDF, JPG, JPEG or PNG file.");
+                    return;
+                }
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Submitting request...";
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

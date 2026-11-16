@@ -381,6 +381,8 @@ const showOrganRequestPage = async (req, res) => {
             JOIN organ_type ot
                 ON ot.organ_id = orq.organ_id
             WHERE orq.verified_hospital_id = $1
+              AND orq.verification_status != 'Withdrawn'
+              AND orq.request_status != 'Withdrawn'
         `
 
         const values = [hospital_id]
@@ -480,8 +482,12 @@ const OrganRequestAction = async (req, res) => {
         await client.query('BEGIN')
 
         const existing = await client.query(
-            `SELECT verification_status FROM organ_request
-             WHERE request_id = $1 AND hospital_id = $2`,
+            `SELECT orq.*, ot.organ_name, rp.user_id, h.hospital_name
+             FROM organ_request orq
+             JOIN recipient_profile rp ON orq.recipient_id = rp.recipient_id
+             JOIN organ_type ot ON orq.organ_id = ot.organ_id
+             JOIN hospital h ON orq.verified_hospital_id = h.hospital_id
+             WHERE orq.or_id = $1 AND orq.verified_hospital_id = $2`,
             [request_id, hospital_id]
         )
 
@@ -493,7 +499,17 @@ const OrganRequestAction = async (req, res) => {
             })
         }
 
-        if (existing.rows[0].verification_status !== 'Pending') {
+        const reqRow = existing.rows[0]
+
+        if (reqRow.verification_status === 'Withdrawn' || reqRow.request_status === 'Withdrawn') {
+            await client.query('ROLLBACK')
+            return res.status(409).json({
+                success: false,
+                message: 'This organ request was cancelled/withdrawn by the recipient and cannot be approved or rejected.'
+            })
+        }
+
+        if (reqRow.verification_status !== 'Pending') {
             await client.query('ROLLBACK')
             return res.status(409).json({
                 success: false,
@@ -504,19 +520,39 @@ const OrganRequestAction = async (req, res) => {
         if (action === 'approve') {
             await client.query(
                 `UPDATE organ_request
-                 SET verification_status = 'Approved', updated_at = NOW()
-                 WHERE request_id = $1`,
+                 SET verification_status = 'Approved',
+                     is_eligible_for_matching = TRUE,
+                     verified_at = NOW(),
+                     updated_at = NOW()
+                 WHERE or_id = $1`,
                 [request_id]
             )
+
+            // Notify user
+            await createNotification({
+                user_id: reqRow.user_id,
+                title: "Organ Request Approved",
+                message: `Your organ request for ${reqRow.organ_name} (Request ID: ${request_id}) has been approved by ${reqRow.hospital_name} and is now eligible for matching.`,
+                notification_type: "Profile"
+            })
         } else {
             await client.query(
                 `UPDATE organ_request
                  SET verification_status = 'Rejected',
+                     is_eligible_for_matching = FALSE,
                      rejection_reason    = $1,
                      updated_at          = NOW()
-                 WHERE request_id = $2`,
+                 WHERE or_id = $2`,
                 [reason, request_id]
             )
+
+            // Notify user
+            await createNotification({
+                user_id: reqRow.user_id,
+                title: "Organ Request Rejected",
+                message: `Your organ request for ${reqRow.organ_name} (Request ID: ${request_id}) was rejected by ${reqRow.hospital_name}. Reason: ${reason}. You are entitled to submit a new organ request.`,
+                notification_type: "Profile"
+            })
         }
 
         await client.query('COMMIT')

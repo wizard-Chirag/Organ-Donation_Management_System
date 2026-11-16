@@ -52,7 +52,7 @@ const unLockProfile = async (req, res) => {
         const isJson = req.is('json') || req.headers.accept?.includes('application/json');
 
         const donor = await db.query(
-            `select * from donor_profile where donor_id = $1 or user_id = $1`,
+            `select * from donor_profile where donor_id = $1`,
             [donor_id]
         );
 

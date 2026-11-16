@@ -19,7 +19,13 @@ const {
     recipientCreationOnLogin,
     RecipientCreationOnLogin,
     showRecipientCreation,
-    showRecipientDashboard
+    showRecipientDashboard,
+    showCreateOrganRequest,
+    createOrganRequest,
+    showRecipientRequests,
+    showRenewOrganRequest,
+    submitRenewOrganRequest,
+    cancelOrganRequest
 } = require('../controllers/recipeientController')
 
 // // STANDALONE PROFILE DASHBOARd
@@ -47,5 +53,16 @@ router.get('/recipient/dashboard',verifyUserToken,verifyRprofileToken,showRecipi
 
 router.get('/recipient/update',verifyUserToken,verifyRprofileToken,showUpdateRecipient)
 router.post('/recipient/update',verifyUserToken,verifyRprofileToken, recipientFolder.single('medical_report'), updateRecipientProfile)
+
+// ─── Recipient Organ Requests ──────────────────────────────────────────────
+router.get('/recipient/organ', verifyUserToken, verifyRprofileToken, showCreateOrganRequest)
+router.post('/recipient/organ', verifyUserToken, verifyRprofileToken, recipientFolder.single('medical_report'), createOrganRequest)
+
+router.get('/recipient/organs', verifyUserToken, verifyRprofileToken, showRecipientRequests)
+
+router.get('/recipient/organ/:id/renew', verifyUserToken, verifyRprofileToken, showRenewOrganRequest)
+router.post('/recipient/organ/:id/renew', verifyUserToken, verifyRprofileToken, recipientFolder.single('medical_report'), submitRenewOrganRequest)
+
+router.post('/recipient/organ/:id/cancel', verifyUserToken, verifyRprofileToken, cancelOrganRequest)
 
 module.exports = router

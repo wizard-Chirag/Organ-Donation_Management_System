@@ -1,11 +1,15 @@
 const db = require('../config/db');
+const { createNotification } = require('./notificationService');
+const { eraseHospitalNotificationByRequest } = require('./hospitalNotificationService');
 
 /**
  * Organ Request Lifecycle Scheduler
- * Runs periodically (called from app startup) to:
- *   1. Increment criticality_score +2 for Pending requests older than 1 day
- *   2. Expire (Renewal Required) Pending requests older than 3 days
- *   3. Auto-reject requests that have hit 3 renewal cycles
+ * Runs periodically to:
+ *   1. Auto-expire Pending requests older than 3 days without hospital action:
+ *      Sets status to 'Renewal Required', request_status = 'Expired',
+ *      rejection_reason = "Renewal required, no action from hospital"
+ *      Notifies user and clears hospital alert.
+ *   2. Increment priority score (+2 per day) for Pending requests.
  */
 const runOrganRequestScheduler = async () => {
     let client;
@@ -15,47 +19,58 @@ const runOrganRequestScheduler = async () => {
 
         const now = new Date();
 
-        // ── Step 1: Auto-reject requests that already reached request_count = 3
-        //            and are still in "Renewal Required" state
-        await client.query(`
-            UPDATE organ_request
-            SET
-                verification_status = 'Rejected',
-                rejection_reason    = 'Automatically rejected: maximum renewal cycles (3) reached without hospital approval.',
-                updated_at          = NOW()
-            WHERE verification_status = 'Renewal Required'
-              AND request_count >= 3
+        // ── Step 1: Find Pending requests older than 3 days that require auto-expiry
+        const expiredRes = await client.query(`
+            SELECT orq.or_id, orq.recipient_id, rp.user_id, ot.organ_name, h.hospital_name
+            FROM organ_request orq
+            JOIN recipient_profile rp ON orq.recipient_id = rp.recipient_id
+            JOIN organ_type ot ON orq.organ_id = ot.organ_id
+            JOIN hospital h ON orq.verified_hospital_id = h.hospital_id
+            WHERE orq.verification_status = 'Pending'
+              AND orq.registered_at <= NOW() - INTERVAL '3 days'
         `);
 
-        // ── Step 2: Expire Pending requests older than 3 days
-        //            (move to "Renewal Required", increment request_count)
-        //            Skip if already at request_count >= 3 (handled above)
-        await client.query(`
-            UPDATE organ_request
-            SET
-                verification_status = 'Renewal Required',
-                request_count       = request_count + 1,
-                updated_at          = NOW()
-            WHERE verification_status = 'Pending'
-              AND registered_at <= NOW() - INTERVAL '3 days'
-              AND request_count < 3
-        `);
+        if (expiredRes.rows.length > 0) {
+            // Update expired requests
+            await client.query(`
+                UPDATE organ_request
+                SET
+                    verification_status = 'Renewal Required',
+                    request_status      = 'Expired',
+                    rejection_reason    = 'Renewal required, no action from hospital',
+                    is_eligible_for_matching = FALSE,
+                    updated_at          = NOW()
+                WHERE verification_status = 'Pending'
+                  AND registered_at <= NOW() - INTERVAL '3 days'
+            `);
 
-        // ── Step 3: Increment criticality_score +2 for Pending requests
-        //            older than 1 day (but not yet expired i.e. < 3 days)
-        //            We use a per-day bucket: score = floor(hours_since_register / 24) * 2
-        //            capped to avoid going above 10 before expiry
+            // Clean hospital notifications & notify users
+            for (const row of expiredRes.rows) {
+                await eraseHospitalNotificationByRequest('organ_request', row.or_id);
+
+                await createNotification({
+                    user_id: row.user_id,
+                    title: "Organ Request Auto-Expired (Renewal Required)",
+                    message: `No action was taken by ${row.hospital_name} on your ${row.organ_name} request within 3 days. Your request is marked for renewal with an additional +5 priority score upon renewal.`,
+                    notification_type: "Reminder"
+                });
+            }
+        }
+
+        // ── Step 2: Increment priority score (+2 per day) for Pending requests
+        // Total priority score = criticality score for that organ + (days since registered_at * 2) + renewal_priority_bonus (+5 per renewal)
         await client.query(`
             UPDATE organ_request
             SET
-                criticality_score = LEAST(
-                    10,
-                    FLOOR(EXTRACT(EPOCH FROM (NOW() - registered_at)) / 86400) * 2
+                criticality_score = (
+                    ot.criticality_score
+                    + FLOOR(EXTRACT(EPOCH FROM (NOW() - organ_request.registered_at)) / 86400) * 2
+                    + COALESCE(organ_request.renewal_priority_bonus, 0)
                 )::INTEGER,
                 updated_at = NOW()
-            WHERE verification_status = 'Pending'
-              AND registered_at <= NOW() - INTERVAL '1 day'
-              AND registered_at > NOW() - INTERVAL '3 days'
+            FROM organ_type ot
+            WHERE organ_request.organ_id = ot.organ_id
+              AND organ_request.verification_status = 'Pending'
         `);
 
         await client.query('COMMIT');

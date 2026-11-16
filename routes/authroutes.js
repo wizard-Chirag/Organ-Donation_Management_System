@@ -10,4 +10,7 @@ router.post('/login',authfunctions.loginUser)
 router.post('/register',authfunctions.registerUser)
 router.get('/logout',authfunctions.logoutUser)
 
+router.get('/forgotPassword',authfunctions.getForgotPassword)
+router.post('/forgotPassword',authfunctions.ResetProfilePassword)
+
 module.exports = router

@@ -122,14 +122,95 @@ const loginUser = async (req, res) => {
 const logoutUser = (req, res) => {
     res.clearCookie('token');
     res.clearCookie('profileToken');
-    res.clearCookie('Profiletoken');
+    res.clearCookie('Rprofiletoken');
+    res.clearCookie('Dprofiletoken');
     console.log("User logged out");
     res.redirect('/');
 };
+
+const getForgotPassword = async (req,res) => {
+
+    console.log('Forgat password page opened')
+    return res.render('forgotPassword',
+        {
+            message:null
+        }
+    )
+    
+}
+
+const ResetProfilePassword = async (req,res) => {
+    
+    const user_cookie = req.cookies.token
+
+    const {
+        email,
+        phonenumber,
+        old_password,
+        new_password
+    } = req.body
+
+    if(!user_cookie){
+        console.log('Invalid user')
+        return res.redirect('/')
+    }
+
+    const user = await db.query(
+        `select * from users where 
+        email = $1`,
+        [email]
+    )
+
+    if(user.rows.length==0){
+       return res.render('forgotPassword',
+        {
+            message : 'User not found'
+        }
+       )
+    }
+
+    if(user.rows[0].phone_number != phonenumber)
+    {
+        return res.render('forgotPassword',
+        {
+            message : 'Invalid User details'
+        }
+       )
+    }
+
+    const hashedpassword = user.rows[0].password
+    const compare = await bcrypt.comparePassword(old_password,hashedpassword)
+
+    if(!compare){
+        return res.render('forgotPassword',
+        {
+            message : 'Invalid password'
+        }
+       )
+    }
+
+    const new_hash_password = await bcrypt.hashPassword(new_password)
+    await db.query(
+        `update donor_profile
+        set donor_password = $1`,
+        [new_hash_password]
+    )
+    await db.query(
+        `update recipient_profile
+        set recipient_password = $1`,
+        [new_hash_password]
+    )
+
+    console.log('Profile password updated')
+    return res.redirect('/dashboard')
+
+}
 
 module.exports = {
     showHome,
     registerUser,
     loginUser,
-    logoutUser
-};
+    logoutUser,
+    getForgotPassword,
+    ResetProfilePassword
+};
